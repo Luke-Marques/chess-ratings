@@ -17,12 +17,6 @@ on:
     - terraform/**
     - .github/workflows/terraform.yml
  
-env:
-  # verbosity setting for Terraform logs
-  TF_LOG: INFO
-  # Credentials for deployment to GCP
-  GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.TERRAFORM_GCP_CREDENTIALS }}g
- 
 jobs:
   terraform:
     name: "Terraform Infrastructure Change Management"
@@ -32,6 +26,11 @@ jobs:
         shell: bash
         # We keep Terraform files in the terraform directory.
         working-directory: ./terraform
+    env:
+        # verbosity setting for Terraform logs
+        TF_LOG: INFO
+        # Credentials for deployment to GCP
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.TERRAFORM_GCP_CREDENTIALS }}
  
     steps:
       - name: Checkout the repository to the runner
