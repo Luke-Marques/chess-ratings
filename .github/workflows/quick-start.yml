@@ -40,12 +40,12 @@ on:
       deployment:
         description: 'Prefect deployment name (could reference environment or branch name e.g. dev or prod)'
         required: false
-        default: default
+        default: chess-ratings-dev
         type: string
       queue:
         description: 'Prefect queue name'
         required: false
-        default: default
+        default: chess-ratings-dev
         type: string
 jobs:
   deploy-container:
@@ -100,7 +100,7 @@ jobs:
           prefect_api_key: ${{ secrets.PREFECT_API_KEY }}
           prefect_api_url: ${{ secrets.PREFECT_API_URL }}
           flow_entrypoint: ${{ steps.flow.outputs.entrypoint }}
-          deployment: ${{ github.event.inputs.deployment }} # optional
-          queue: ${{ github.event.inputs.queue }} # optional
-          storage_block: github/${{ github.event.inputs.block_name }} # optional
-          infrastructure_block: cloud-run-job/${{ github.event.inputs.block_name }} # optional
+          deployment: ${{ github.event.inputs.deployment }}
+          queue: ${{ github.event.inputs.queue }}
+          storage_block: github/${{ github.event.inputs.block_name }}
+          infrastructure_block: cloud-run-job/${{ github.event.inputs.block_name }}
