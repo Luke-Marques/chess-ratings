@@ -16,11 +16,11 @@ inputs:
   deployment:
     description: "Prefect deployment name - could reference environment or branch name e.g. dev or prod"
     required: false
-    default: default
+    default: chess-ratings-dev
   queue:
     description: "Prefect queue name"
     required: false
-    default: default
+    default: chess-ratings-dev
   storage_block:
     description: "Name of the storage block"
     required: false
