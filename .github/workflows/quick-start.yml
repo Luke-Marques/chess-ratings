@@ -30,12 +30,12 @@ on:
       block_name:
         description: 'GitHub and CloudRunJob block name'
         required: false
-        default: "default"
+        default: "chess-ratings-dev"
         type: string
       gcp_creds_block_name:
         description: 'Name of the GcpCredentials block'
         required: false
-        default: "default"  # change to your gcp-credentials prefect block name
+        default: "gcp-creds-chess-ratings"  # change to your gcp-credentials prefect block name
         type: string
       deployment:
         description: 'Prefect deployment name (could reference environment or branch name e.g. dev or prod)'

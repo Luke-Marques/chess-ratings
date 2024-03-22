@@ -37,8 +37,8 @@ jobs:
           prefect_api_key: ${{ secrets.PREFECT_API_KEY }}
           prefect_api_url: ${{ secrets.PREFECT_API_URL }}
           flow_entrypoint: ${{ steps.flow.outputs.entrypoint }}
-          deployment: "default" # optional
+          deployment: "chess" # optional
           queue: "default" # optional
-          storage_block: "github/default" # optional
-          infrastructure_block: "cloud-run-job/default" # optional
+          storage_block: "github/chess-ratings" # optional
+          infrastructure_block: "cloud-run-job/chess-ratings" # optional
           python_version: "3.12" # optional
