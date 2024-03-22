@@ -16,6 +16,7 @@ parser.add_argument("-b", "--branch", default="main")
 parser.add_argument("-r", "--repo", default=REPO)
 
 parser.add_argument("-n", "--block-name", default="default")
+parser.add_argument("-g", "--gcp-creds-block-name", default="default")
 parser.add_argument("-i", "--image")
 parser.add_argument("--region", default="europe-north1")
 
@@ -27,7 +28,7 @@ gh.save(args.block_name, overwrite=True)
 block = CloudRunJob(
     image=args.image,
     region=args.region,
-    credentials=GcpCredentials.load(args.block_name),
+    credentials=GcpCredentials.load(args.gcp_creds_block_name),
     cpu=1,
     timeout=3600,
 )
