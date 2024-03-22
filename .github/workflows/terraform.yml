@@ -9,8 +9,6 @@ on:
     paths:
     - terraform/**
     - .github/workflows/terraform.yml
-  pull_request_review:
-    types: [submitted]
   pull_request:
     branches:
     - main
@@ -69,7 +67,7 @@ jobs:
         run: exit 1
 
       - name: Terraform Apply
-        if: github.event.review.state == 'approved' || github.event_name == 'push'
+        if: github.event_name == 'push'
         run: terraform apply -auto-approve -input=false
         env:
             GOOGLE_CREDENTIALS: ${{ secrets.TERRAFORM_GCP_CREDENTIALS }}
