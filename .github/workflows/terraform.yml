@@ -26,11 +26,10 @@ jobs:
         shell: bash
         # We keep Terraform files in the terraform directory.
         working-directory: ./terraform
+        
     env:
         # verbosity setting for Terraform logs
         TF_LOG: INFO
-        # Credentials for deployment to GCP
-        GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.TERRAFORM_GCP_CREDENTIALS }}
  
     steps:
       - name: Checkout the repository to the runner
@@ -40,6 +39,12 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.4
+
+      - name: Create file for GCP Credentials
+        id: create-gcp-creds-file
+        run: |
+            echo ${{ secrets.TERRAFORM_GCP_CREDENTIALS }} > "${GITHUB_WORKSPACE}/gcp-creds.json"
+            echo "GOOGLE_APPLICATION_CREDENTIALS=${GITHUB_WORKSPACE}/gcp-creds.json" >> $GITHUB_ENV
 
       - name: Terraform init
         id: init
