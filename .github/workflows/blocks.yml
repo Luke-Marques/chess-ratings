@@ -5,19 +5,19 @@ on:
       github_block_name:
         description: 'Name of the GitHub block'
         required: false
-        default: "default"
+        default: "chess-ratings"
       cloudrun_block_name:
         description: 'Name of the CloudRunJob block'
         required: false
-        default: "default"
+        default: "chess-ratings"
       gcp_creds_block_name:
         description: 'Name of the GcpCredentials block'
         required: false
-        default: "default"  # change to your gcp-credentials prefect block name
+        default: "gcp-creds-chess-ratings"
       image_uri:
         description: 'Name of the AR image URI'
         required: true
-        default: "europe-north1-docker.pkg.dev/prefect-community/prefect/deployments:latest" # example default value
+        default: "europe-north1-docker.pkg.dev/prefect-community/prefect/deployments:latest"
       region:
         description: GCP region
         required: true
@@ -25,7 +25,7 @@ on:
       python_version:
         description: 'Python version'
         required: false
-        default: "3.12"  # the latest Prefect 2 version is used by default
+        default: "3.12"
 jobs:
   blocks:
     runs-on: ubuntu-latest

@@ -16,19 +16,19 @@ inputs:
   deployment:
     description: "Prefect deployment name - could reference environment or branch name e.g. dev or prod"
     required: false
-    default: default
+    default: chess-ratings-dev
   queue:
     description: "Prefect queue name"
     required: false
-    default: default
+    default: chess-ratings-dev
   storage_block:
     description: "Name of the storage block"
     required: false
-    default: "github/default"
+    default: "github/chess-ratings"
   infrastructure_block:
     description: "Name of the infrastructure block"
     required: false
-    default: "cloud-run-job/default"
+    default: "cloud-run-job/chess-ratings"
   python_version:
     description: "Python version"
     required: false
