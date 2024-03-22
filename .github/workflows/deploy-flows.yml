@@ -1,10 +1,22 @@
 name: Prefect Deployments CI/CD
 on:
   workflow_dispatch:
+  pull_request:
+    types: [opened, reopened]
+    branches:
+      - main
+      - dev
+    paths:
+      - ".github/workflows/deploy-flows.yml"
+      - ".github/actions/deploy-flows/**"
+      - 'prefect/flows/**'
   push:
     branches:
       - main
+      - dev
     paths:
+      - ".github/workflows/deploy-flows.yml"
+      - ".github/actions/deploy-flows/**"
       - 'prefect/flows/**'
 
 jobs:
