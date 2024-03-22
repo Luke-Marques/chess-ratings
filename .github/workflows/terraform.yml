@@ -42,9 +42,7 @@ jobs:
 
       - name: Create file for GCP Credentials
         id: create-gcp-creds-file
-        run: |
-            echo ${{ secrets.TERRAFORM_GCP_CREDENTIALS }} > "${GITHUB_WORKSPACE}/gcp-creds.json"
-            echo "GOOGLE_APPLICATION_CREDENTIALS=${GITHUB_WORKSPACE}/gcp-creds.json" >> $GITHUB_ENV
+        run: echo ${{ secrets.TERRAFORM_GCP_CREDENTIALS }} > "${GITHUB_WORKSPACE}/gcp-creds.json" && echo "GOOGLE_APPLICATION_CREDENTIALS=${GITHUB_WORKSPACE}/gcp-creds.json" >> $GITHUB_ENV
 
       - name: Terraform init
         id: init
