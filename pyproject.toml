@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "prefect-gcp-template"
+version = "0.1.0"
+description = ""
+authors = ["Luke Marques <74625391+Luke-Marques@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+prefect = "^2.16.4"
+prefect-gcp = "^0.5.7"
+ruff = "^0.3.3"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.3.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

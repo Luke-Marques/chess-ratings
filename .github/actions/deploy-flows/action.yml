@@ -1,0 +1,63 @@
+name: "Deploy flows"
+branding:
+  icon: cloud
+  color: blue
+description: "Deploy flows to Prefect Cloud and Google Cloud Run"
+inputs:
+  prefect_api_key:
+    description: "Prefect Cloud API key"
+    required: true
+  prefect_api_url:
+    description: "Prefect Cloud API URL"
+    required: true
+  flow_entrypoint:
+    description: "Prefect flow entrypoint e.g. myflow.py:flow_function"
+    required: true
+  deployment:
+    description: "Prefect deployment name - could reference environment or branch name e.g. dev or prod"
+    required: false
+    default: default
+  queue:
+    description: "Prefect queue name"
+    required: false
+    default: default
+  storage_block:
+    description: "Name of the storage block"
+    required: false
+    default: "github/default"
+  infrastructure_block:
+    description: "Name of the infrastructure block"
+    required: false
+    default: "cloud-run-job/default"
+  python_version:
+    description: "Python version"
+    required: false
+    default: "3.12" # the latest Prefect 2 version is used by default
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      id: setup-python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "${{ inputs.python_version }}"
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        installer-parallel: true
+    - name: Install dependencies
+      shell: bash
+      run: poetry install --no-interaction --no-root
+
+    - id: login-prefect
+      run: |
+        poetry run prefect config set PREFECT_API_KEY=${{ inputs.prefect_api_key }}
+        poetry run prefect config set PREFECT_API_URL=${{ inputs.prefect_api_url }}
+      shell: bash
+
+    - run: |
+        poetry run prefect deployment build ${{ inputs.flow_entrypoint }} -n ${{ inputs.deployment }} -q ${{ inputs.queue }} \
+        -sb "${{ inputs.storage_block }}" -ib "${{ inputs.infrastructure_block }}" --skip-upload -a -v $GITHUB_SHA
+      shell: bash

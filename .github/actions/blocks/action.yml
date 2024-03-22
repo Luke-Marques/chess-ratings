@@ -1,0 +1,55 @@
+name: "Prefect Blocks Quickstart"
+description: "Deploy CloudRunJob and GitHub blocks for serverless containerized execution"
+branding:
+  icon: cloud
+  color: blue
+inputs:
+  prefect_api_key:
+    description: "Prefect Cloud API key"
+    required: true
+  prefect_api_url:
+    description: "Prefect Cloud API URL"
+    required: true
+  block_name:
+    description: "Name of the GitHub, CloudRunJob and GcpCredentials blocks"
+    required: false
+    default: "default" # change to your gcp-credentials prefect block name
+  image_uri:
+    description: "Name of the AR image URI"
+    required: true
+    default: "europe-north1-docker.pkg.dev/prefect-community/prefect/deployments:latest"
+  region:
+    description: GCP region
+    required: true
+    default: "europe-north1"
+  python_version:
+    description: "Python version"
+    required: false
+    default: "3.12" # the latest Prefect 2 version is used by default
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      id: setup-python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "${{ inputs.python_version }}"
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        installer-parallel: true
+    - name: Install dependencies
+      shell: bash
+      run: poetry install --no-interaction --no-root
+
+    - id: login-prefect
+      run: |
+        poetry run prefect config set PREFECT_API_KEY=${{ inputs.prefect_api_key }}
+        poetry run prefect config set PREFECT_API_URL=${{ inputs.prefect_api_url }}
+      shell: bash
+
+    - id: create-blocks
+      run: poetry run python ${{ github.action_path }}/blocks.py -b $GITHUB_REF_NAME -r $GITHUB_SERVER_URL/$GITHUB_REPOSITORY -n ${{ inputs.block_name }} -i ${{ inputs.image_uri }} --region ${{ inputs.region }}
+      shell: bash
