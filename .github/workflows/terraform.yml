@@ -21,7 +21,7 @@ env:
   # verbosity setting for Terraform logs
   TF_LOG: INFO
   # Credentials for deployment to GCP
-  GOOGLE_CREDENTIALS: ${{ secrets.TERRAFORM_GCP_CREDENTIALS }}
+  GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.TERRAFORM_GCP_CREDENTIALS }}g
  
 jobs:
   terraform:
