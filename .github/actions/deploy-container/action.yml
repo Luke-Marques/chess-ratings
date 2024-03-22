@@ -16,7 +16,7 @@ inputs:
   region:
     description: "GCP region"
     required: false
-    default: "europe-north1"
+    default: "us-east1"
   artifact_repository:
     description: "Artifact Registry Repository Name"
     required: false
@@ -44,7 +44,7 @@ runs:
       uses: google-github-actions/auth@v1
       with:
         credentials_json: "${{ inputs.gcp_credentials_json }}"
-
+    
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
 
@@ -57,7 +57,7 @@ runs:
         region: ${{ inputs.region }}
         artifact_repository: ${{ inputs.artifact_repository }}
         image_name: ${{ inputs.image_name }}
-
+    
     - id: terminate-if-exists
       run: gcloud compute instances delete "${{ inputs.machine_name }}" --zone "${{ inputs.zone }}" --quiet --verbosity none
       continue-on-error: true
