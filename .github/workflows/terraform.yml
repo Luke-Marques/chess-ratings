@@ -43,6 +43,8 @@ jobs:
       - name: Terraform init
         id: init
         run: terraform init
+        env:
+            GOOGLE_CREDENTIALS: ${{ secrets.TERRAFORM_GCP_CREDENTIALS }}
 
       - name: Terraform format
         id: fmt
@@ -57,6 +59,8 @@ jobs:
         if: github.event_name == 'pull_request'
         run: terraform plan -no-color -input=false
         continue-on-error: true
+        env:
+            GOOGLE_CREDENTIALS: ${{ secrets.TERRAFORM_GCP_CREDENTIALS }}
 
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
@@ -65,3 +69,5 @@ jobs:
       - name: Terraform Apply
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/head/dev') && github.event_name == 'push'
         run: terraform apply -auto-approve -input=false
+        env:
+            GOOGLE_CREDENTIALS: ${{ secrets.TERRAFORM_GCP_CREDENTIALS }}
