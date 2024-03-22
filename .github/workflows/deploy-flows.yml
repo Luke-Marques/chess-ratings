@@ -1,10 +1,22 @@
 name: Prefect Deployments CI/CD
 on:
   workflow_dispatch:
+  pull_request:
+    types: [opened, reopened]
+    branches:
+      - main
+      - dev
+    paths:
+      - ".github/workflows/deploy-flows.yml"
+      - ".github/actions/deploy-flows/**"
+      - 'prefect/flows/**'
   push:
     branches:
       - main
+      - dev
     paths:
+      - ".github/workflows/deploy-flows.yml"
+      - ".github/actions/deploy-flows/**"
       - 'prefect/flows/**'
 
 jobs:
@@ -37,8 +49,8 @@ jobs:
           prefect_api_key: ${{ secrets.PREFECT_API_KEY }}
           prefect_api_url: ${{ secrets.PREFECT_API_URL }}
           flow_entrypoint: ${{ steps.flow.outputs.entrypoint }}
-          deployment: "default" # optional
-          queue: "default" # optional
-          storage_block: "github/default" # optional
-          infrastructure_block: "cloud-run-job/default" # optional
-          python_version: "3.12" # optional
+          deployment: "chess-ratings-dev"
+          queue: "chess-ratings-dev"
+          storage_block: "github/chess-ratings"
+          infrastructure_block: "cloud-run-job/chess-ratings"
+          python_version: "3.12"
