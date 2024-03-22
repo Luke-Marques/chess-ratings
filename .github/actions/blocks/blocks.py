@@ -10,7 +10,7 @@ from prefect_gcp.credentials import GcpCredentials
 
 from prefect.filesystems import GitHub
 
-REPO = "https://github.com/Luke-Marques/chess-ratings"
+REPO = "https://github.com/Luke-Marques/prefect-gcp-template"
 parser = argparse.ArgumentParser()
 parser.add_argument("-b", "--branch", default="main")
 parser.add_argument("-r", "--repo", default=REPO)
