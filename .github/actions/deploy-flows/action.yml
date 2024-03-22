@@ -24,11 +24,11 @@ inputs:
   storage_block:
     description: "Name of the storage block"
     required: false
-    default: "github/default"
+    default: "github/chess-ratings"
   infrastructure_block:
     description: "Name of the infrastructure block"
     required: false
-    default: "cloud-run-job/default"
+    default: "cloud-run-job/chess-ratings"
   python_version:
     description: "Python version"
     required: false
