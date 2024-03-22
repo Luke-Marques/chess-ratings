@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.7"
+  required_version = ">= 1.6.4"
   backend "local" {} # use "gcs" or "s3" to preserve tf state online"
 }
 
