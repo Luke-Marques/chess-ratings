@@ -155,7 +155,7 @@ def write_ratings_data_to_gcs(df: pl.DataFrame, out_path: Path) -> Path:
         end=" ",
     )
     df: pd.DataFrame = df.to_pandas()  # prefect-gcp requires pandas dataframe
-    gcs_bucket_block = GcsBucket.load("chess-ratings")
+    gcs_bucket_block = GcsBucket.load("chess-ratings-datalake_fide-chess-ratings")
     gcs_bucket_block.upload_from_dataframe(
         df=df, to_path=out_path, serialization_format="parquet"
     )
@@ -166,7 +166,7 @@ def write_ratings_data_to_gcs(df: pl.DataFrame, out_path: Path) -> Path:
 @task()
 def check_if_file_exists_in_gcs(file_path: Path) -> bool:
     """Determine if a filepath already exists in a GCS Bucket."""
-    gcs_bucket_block = GcsBucket.load("chess-ratings")
+    gcs_bucket_block = GcsBucket.load("chess-ratings-datalake_fide-chess-ratings")
     blobs = gcs_bucket_block.list_blobs()
     paths = [Path(blob.name) for blob in blobs]
     if file_path in paths:
