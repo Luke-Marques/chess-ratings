@@ -13,14 +13,14 @@ from prefect_gcp.cloud_storage import GcsBucket
 from prefect import flow, task
 from prefect.tasks import task_input_hash
 
-from ..utils.chess_ratings_data_model import ChessRating
-from ..utils.dates import (
+from utils.chess_ratings_data_model import ChessRating
+from utils.dates import (
     check_valid_month,
     check_valid_year,
     convert_numeric_month_to_string,
     get_date_range,
 )
-from ..utils.game_format import GameFormat
+from utils.game_format import GameFormat
 
 
 def add_missing_columns(
