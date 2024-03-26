@@ -5,7 +5,6 @@ python blocks.py -b $GITHUB_REF_NAME -r "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" 
 
 import argparse
 
-from prefect_gcp.cloud_storage import GcsBucket
 from prefect_gcp.cloud_run import CloudRunJob
 from prefect_gcp.credentials import GcpCredentials
 
