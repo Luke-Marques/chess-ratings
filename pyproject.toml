@@ -10,6 +10,9 @@ python = "^3.12"
 prefect = "^2.16.4"
 prefect-gcp = "^0.5.7"
 ruff = "^0.3.3"
+polars = "^0.20.16"
+pandas = "^2.2.1"
+patito = "^0.6.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.3.2"
