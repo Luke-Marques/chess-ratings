@@ -5,6 +5,7 @@ python blocks.py -b $GITHUB_REF_NAME -r "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" 
 
 import argparse
 
+from prefect_gcp.cloud_storage import GcsBucket
 from prefect_gcp.cloud_run import CloudRunJob
 from prefect_gcp.credentials import GcpCredentials
 
@@ -25,7 +26,7 @@ args = parser.parse_args()
 github_block = GitHub(repository=args.repo, reference=args.branch)
 github_block.save(args.block_name, overwrite=True)
 
-# create GCP Cloud Run Job blcok and save to Prefect Cloud
+# create GCP Cloud Run Job block and save to Prefect Cloud
 cloud_run_job_block = CloudRunJob(
     image=args.image,
     region=args.region,
