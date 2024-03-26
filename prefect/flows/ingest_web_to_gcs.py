@@ -186,18 +186,32 @@ def ingest_single_month_web_to_gcs(
     Sub-flow for the extraction, pre-processing, and writing of FIDE chess ratings
     data to GCS, for a given of date (year and month) and game format.
     """
+    # generate file path for cleaned ratings dataset
     out_file_name: Path = generate_file_name(year, month, game_format)
     out_path = Path("data" / out_file_name)
+
+    # check if ratings dataset file already exists in gcs
     file_exists_in_gcs: bool = check_if_file_exists_in_gcs(out_path)
     if file_exists_in_gcs and not overwrite_existing:
         print(f"Data file {out_path} exists in GCS already. Skipping.")
         return None
+    
+    # extract ratings dataset from web
     df = extract_ratings_data(year, month, game_format)
+
+    # clean ratings dataset
     df_clean = preprocess_ratings_data(df, year, month)
+
+    # validate ratings dataset using patito data model
     validate_ratings_data(df_clean)
+
+    # write cleaned ratings dataset to local parquet file
     if store_local:
-        _ = write_ratings_data_to_local(df_clean, out_path)
-    _ = write_ratings_data_to_gcs(df, out_path)
+        write_ratings_data_to_local(df_clean, out_path)
+    
+    # write cleaned ratings dataset to gcs bucket
+    write_ratings_data_to_gcs(df, out_path)
+    
     return df, out_path
 
 
