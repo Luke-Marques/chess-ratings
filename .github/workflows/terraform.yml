@@ -1,0 +1,73 @@
+name: "Terraform Infrastructure Change Management Pipeline with GitHub Actions"
+ 
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - dev
+    - main
+    paths:
+    - terraform/**
+    - .github/workflows/terraform.yml
+  pull_request:
+    branches:
+    - main
+    - dev
+    paths:
+    - terraform/**
+    - .github/workflows/terraform.yml
+ 
+jobs:
+  terraform:
+    name: "Terraform Infrastructure Change Management"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        # We keep Terraform files in the terraform directory.
+        working-directory: ./terraform
+        
+    env:
+        # verbosity setting for Terraform logs
+        TF_LOG: INFO
+ 
+    steps:
+      - name: Checkout the repository to the runner
+        uses: actions/checkout@v2
+
+      - name: Setup Terraform with specified version on the runner
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.4
+
+      - name: Terraform init
+        id: init
+        run: terraform init
+        env:
+            GOOGLE_CREDENTIALS: ${{ secrets.TERRAFORM_GCP_CREDENTIALS }}
+
+      - name: Terraform format
+        id: fmt
+        run: terraform fmt -check
+
+      - name: Terraform validate
+        id: validate
+        run: terraform validate
+
+      - name: Terraform plan
+        id: plan
+        if: github.event_name == 'pull_request'
+        run: terraform plan -no-color -input=false
+        continue-on-error: true
+        env:
+            GOOGLE_CREDENTIALS: ${{ secrets.TERRAFORM_GCP_CREDENTIALS }}
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terraform Apply
+        if: github.event_name == 'push'
+        run: terraform apply -auto-approve -input=false
+        env:
+            GOOGLE_CREDENTIALS: ${{ secrets.TERRAFORM_GCP_CREDENTIALS }}

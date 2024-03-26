@@ -42,4 +42,4 @@ jobs:
           image_uri: ${{ github.event.inputs.image_uri }}  # optional
           region: ${{ github.event.inputs.region }}  # optional
           python_version: ${{ github.event.inputs.python_version }} # optional
-          install_command: ${{ github.event.inputs.install_command }} # optional
+          
