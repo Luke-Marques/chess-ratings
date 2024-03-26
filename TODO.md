@@ -7,3 +7,5 @@
 - [ ] Add devcontainer setup for more reproducible development environment.
 - [x] Add terraform configuration files.
 - [x] Add terraform gh workflow and test.
+- [x] Add prefect flow for data ingestion from web to GCS bucket.
+- [] Add GCS bucket block to blocks.py script.
