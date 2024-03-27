@@ -1,23 +1,21 @@
 FROM python:3.12
 
-ENV PYTHONFAULTHANDLER=True \
-    PYTHONUNBUFFERED=True \
-    PYTHONHASHSEED=random \
-    PIP_NO_CACHE_DIR=off \
-    PIP_DISABLE_PIP_VERSION_CHECK=on \
-    PIP_DEFAULT_TIMEOUT=100 \
-    # Poetry's configuration:
-    POETRY_NO_INTERACTION=1 \
+ENV POETRY_NO_INTERACTION=true \
     POETRY_VIRTUALENVS_CREATE=false \
-    POETRY_CACHE_DIR='/var/cache/pypoetry' \
-    POETRY_HOME='/usr/local' \
     POETRY_VERSION=1.7.1
 
 # Install setuptools for distutils
 RUN pip install setuptools
 
-# System deps:
-RUN curl -sSL https://install.python-poetry.org | python3 -
+# Install setuptools for distutils
+RUN pip install setuptools
+
+# Install pipx
+RUN python3 -m pip install pipx && python3 -m pipx ensurepath
+ENV PATH="/root/.local/bin:$PATH"
+
+# Install poetry for dependency management
+RUN python3 -m pipx install poetry && python3 -m pipx upgrade poetry
 
 # Copy only requirements to cache them in docker layer
 WORKDIR /opt
