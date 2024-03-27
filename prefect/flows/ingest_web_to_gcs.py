@@ -1,6 +1,6 @@
 import io
 import zipfile
-from datetime import date, timedelta
+from datetime import timedelta
 from itertools import product
 from pathlib import Path
 from typing import Iterable, Tuple
@@ -18,7 +18,6 @@ from utils.dates import (
     check_valid_month,
     check_valid_year,
     convert_numeric_month_to_string,
-    get_date_range,
 )
 from utils.game_format import GameFormat
 
@@ -195,7 +194,7 @@ def ingest_single_month_web_to_gcs(
     if file_exists_in_gcs and not overwrite_existing:
         print(f"Data file {out_path} exists in GCS already. Skipping.")
         return None
-    
+
     # extract ratings dataset from web
     df = extract_ratings_data(year, month, game_format)
 
@@ -208,43 +207,47 @@ def ingest_single_month_web_to_gcs(
     # write cleaned ratings dataset to local parquet file
     if store_local:
         write_ratings_data_to_local(df_clean, out_path)
-    
+
     # write cleaned ratings dataset to gcs bucket
     write_ratings_data_to_gcs(df, out_path)
-    
+
     return df, out_path
 
 
 @flow()
 def ingest_web_to_gcs(
-    start_year: int = 2015,
-    start_month: int = 1,
-    end_year: int = date.today().year,
-    end_month: int = date.today().month,
-    game_formats: str | Iterable[str] = "all",
+    year: int | Iterable[int],
+    month: int | Iterable[int],
+    game_format: str | Iterable[str] = "all",
     store_local: bool = False,
+    overwrite_existing: bool = True,
 ) -> None:
     """
     Parent-flow for the extraction, pre-processing, and writing of FIDE chess ratings
     data to GCS, across a range of dates (years and months) and game formats.
     """
-    match game_formats:
-        case "all":
-            game_formats = [GameFormat.STANDARD, GameFormat.RAPID, GameFormat.BLITZ]
-        case "standard":
-            game_formats = [GameFormat.STANDARD]
-        case "rapid":
-            game_formats = [GameFormat.RAPID]
-        case "blitz":
-            game_formats = [GameFormat.BLITZ]
+    # convert int year/month values to lists
+    if isinstance(year, int):
+        year = [year]
+    if isinstance(month, int):
+        month = [month]
 
-    dates = get_date_range(
-        date(year=start_year, month=start_month, day=1),
-        date(year=end_year, month=end_month, day=1),
-    )
-    for game_format, (year, month) in product(game_formats, dates):
-        ingest_single_month_web_to_gcs(year, month, game_format, store_local)
+    # convert game_format variable to GameFormat object(s)
+    match game_format:
+        case "all":
+            game_format = [GameFormat.STANDARD, GameFormat.RAPID, GameFormat.BLITZ]
+        case "standard":
+            game_format = [GameFormat.STANDARD]
+        case "rapid":
+            game_format = [GameFormat.RAPID]
+        case "blitz":
+            game_format = [GameFormat.BLITZ]
+
+    for game_format, year, month in product(game_format, year, month):
+        ingest_single_month_web_to_gcs(
+            year, month, game_format, store_local, overwrite_existing
+        )
 
 
 if __name__ == "__main__":
-    ingest_web_to_gcs()
+    ingest_web_to_gcs(2015, 1, "standard", False, False)
