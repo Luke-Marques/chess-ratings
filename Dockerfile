@@ -34,4 +34,4 @@ ENV PREFECT_API_URL=$PREFECT_API_URL
 
 COPY prefect/flows/ /opt/prefect/flows/
 
-ENTRYPOINT [ "poetry", "run", "prefect", "worker", "start", "-q", "chess-ratings-dev" ]
+ENTRYPOINT [ "poetry", "run", "prefect", "agent", "start", "-q", "chess-ratings-dev" ]
