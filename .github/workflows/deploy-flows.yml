@@ -51,6 +51,6 @@ jobs:
           flow_entrypoint: ${{ steps.flow.outputs.entrypoint }}
           deployment: "chess-ratings-dev"
           queue: "chess-ratings-dev"
-          storage_block: "github/chess-ratings"
-          infrastructure_block: "cloud-run-job/chess-ratings"
+          storage_block: "github/chess-ratings-dev"
+          infrastructure_block: "cloud-run-job/chess-ratings-dev"
           python_version: "3.12"
