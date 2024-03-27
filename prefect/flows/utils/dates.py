@@ -1,7 +1,4 @@
 from datetime import date
-from typing import List, Tuple
-
-import polars as pl
 
 
 def convert_numeric_month_to_string(month: int) -> str:
@@ -22,12 +19,6 @@ def convert_numeric_month_to_string(month: int) -> str:
         "dec",
     ]
     return months[month - 1]
-
-
-def get_date_range(start_date: date, end_date: date) -> List[Tuple[int, int]]:
-    """Generate a list of dates as years and months between two dates."""
-    dates = pl.date_range(start_date, end_date, interval="1mo", eager=True)
-    return [(d.year, d.month) for d in dates]
 
 
 def check_valid_year(year: int) -> None:
