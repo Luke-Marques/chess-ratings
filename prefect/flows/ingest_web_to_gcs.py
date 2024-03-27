@@ -1,6 +1,6 @@
 import io
 import zipfile
-from datetime import timedelta
+from datetime import date, timedelta
 from itertools import product
 from pathlib import Path
 from typing import Iterable, Tuple
@@ -194,7 +194,7 @@ def ingest_single_month_web_to_gcs(
     if file_exists_in_gcs and not overwrite_existing:
         print(f"Data file {out_path} exists in GCS already. Skipping.")
         return None
-    
+
     # extract ratings dataset from web
     df = extract_ratings_data(year, month, game_format)
 
@@ -207,7 +207,7 @@ def ingest_single_month_web_to_gcs(
     # write cleaned ratings dataset to local parquet file
     if store_local:
         write_ratings_data_to_local(df_clean, out_path)
-        
+
     # write cleaned ratings dataset to gcs bucket
     write_ratings_data_to_gcs(df, out_path)
 
@@ -216,8 +216,8 @@ def ingest_single_month_web_to_gcs(
 
 @flow()
 def ingest_web_to_gcs(
-    year: int | Iterable[int],
-    month: int | Iterable[int],
+    year: int | Iterable[int] = date.today().year,
+    month: int | Iterable[int] = date.today().month,
     game_format: str | Iterable[str] = "all",
     store_local: bool = False,
     overwrite_existing: bool = True,
@@ -250,4 +250,4 @@ def ingest_web_to_gcs(
 
 
 if __name__ == "__main__":
-    ingest_web_to_gcs(2015, 1, "standard", False, False)
+    ingest_web_to_gcs()
