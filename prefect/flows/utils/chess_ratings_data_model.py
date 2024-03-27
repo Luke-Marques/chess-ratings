@@ -11,7 +11,7 @@ class ChessRating(pt.Model):
 
     fide_id: int = pt.Field(unique=True)
     player_name: Optional[str]
-    fide_federation: Optional[str] = pt.Field(regex=r"(?i)[A-Z]{3}")
+    fide_federation: Optional[str] = pt.Field(pattern=r"(?i)[A-Z]{3}")
     sex: Optional[int] = pt.Field(dtype=pl.Int8)
     title: Optional[str]
     w_title: Optional[str]
