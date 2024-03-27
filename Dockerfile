@@ -20,8 +20,8 @@ RUN pip install setuptools
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
 # Copy only requirements to cache them in docker layer
-WORKDIR /code
-COPY poetry.lock pyproject.toml /code/
+WORKDIR /opt
+COPY poetry.lock pyproject.toml /opt/
 
 # Project initialization
 RUN poetry install --no-root --no-interaction --no-ansi
