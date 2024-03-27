@@ -10,26 +10,27 @@ from prefect_gcp.credentials import GcpCredentials
 
 from prefect.filesystems import GitHub
 
+# parse command line arguments
 REPO = "https://github.com/Luke-Marques/chess-ratings"
 parser = argparse.ArgumentParser()
 parser.add_argument("-b", "--branch", default="main")
 parser.add_argument("-r", "--repo", default=REPO)
-
 parser.add_argument("-n", "--block-name", default="default")
 parser.add_argument("-g", "--gcp-creds-block-name", default="default")
 parser.add_argument("-i", "--image")
 parser.add_argument("--region", default="europe-north1")
-
 args = parser.parse_args()
 
-gh = GitHub(repository=args.repo, reference=args.branch)
-gh.save(args.block_name, overwrite=True)
+# create GitHub block and save to Prefect Cloud
+github_block = GitHub(repository=args.repo, reference=args.branch)
+github_block.save(args.block_name, overwrite=True)
 
-block = CloudRunJob(
+# create GCP Cloud Run Job block and save to Prefect Cloud
+cloud_run_job_block = CloudRunJob(
     image=args.image,
     region=args.region,
     credentials=GcpCredentials.load(args.gcp_creds_block_name),
     cpu=1,
     timeout=3600,
 )
-block.save(args.block_name, overwrite=True)
+cloud_run_job_block.save(args.block_name, overwrite=True)
