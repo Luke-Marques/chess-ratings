@@ -1,35 +1,27 @@
-FROM python:3.12
+# This image (built via Dockerfile.prefect) is used for the Prefect backend.
+FROM prefecthq/prefect:2-python3.12 as python-base
 
-ENV POETRY_NO_INTERACTION=true \
-    POETRY_VIRTUALENVS_CREATE=false \
-    POETRY_VERSION=1.7.1
-
-# Install setuptools for distutils
-RUN pip install setuptools
-
-# Install setuptools for distutils
-RUN pip install setuptools
-
-# Install pipx
-RUN python3 -m pip install pipx && python3 -m pipx ensurepath
-ENV PATH="/root/.local/bin:$PATH"
-
-# Install poetry for dependency management
-RUN python3 -m pipx install poetry && python3 -m pipx upgrade poetry
+# Install poetry
+RUN pip install --upgrade pip
+RUN pip install poetry==1.7.1
 
 # Copy only requirements to cache them in docker layer
-WORKDIR /opt
-COPY poetry.lock pyproject.toml /opt/
+COPY prefect/flows/ /opt/chess-ratings/prefect/flows/
+COPY poetry.lock pyproject.toml /opt/chess-ratings/
+WORKDIR /opt/chess-ratings/
 
-# Project initialization
-RUN poetry install --no-root --no-interaction --no-ansi
+# Install packages in the system Python
+RUN poetry config virtualenvs.create false
+RUN poetry config virtualenvs.prefer-active-python true
 
+# Install required packages
+RUN poetry install --no-interaction --no-ansi
+
+# Set Prefect environment variables
 ARG PREFECT_API_KEY
 ENV PREFECT_API_KEY=$PREFECT_API_KEY
- 
 ARG PREFECT_API_URL
 ENV PREFECT_API_URL=$PREFECT_API_URL
 
-COPY prefect/flows/ /opt/prefect/flows/
-
-ENTRYPOINT [ "poetry", "run", "prefect", "agent", "start", "-q", "chess-ratings-dev" ]
+# Set entrypoint to start prefect agent/worker 
+ENTRYPOINT [ "prefect", "agent", "start", "-q", "chess-ratings-dev" ]
