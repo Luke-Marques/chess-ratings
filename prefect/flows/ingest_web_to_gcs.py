@@ -9,6 +9,7 @@ import pandas as pd
 import polars as pl
 import requests
 from prefect_gcp.cloud_storage import GcsBucket
+from prefect_gcp.credentials import GcpCredentials
 
 from prefect import flow, task
 from prefect.tasks import task_input_hash
