@@ -1,6 +1,6 @@
 import io
 import zipfile
-from datetime import date, timedelta
+from datetime import date
 from itertools import product
 from pathlib import Path
 from typing import Iterable, Tuple
@@ -11,7 +11,6 @@ import requests
 from prefect_gcp.cloud_storage import GcsBucket
 
 from prefect import flow, task
-from prefect.tasks import task_input_hash
 
 from utils.chess_ratings_data_model import ChessRating
 from utils.dates import (
