@@ -73,7 +73,7 @@ def stream_zip_file(url: str) -> Tuple[zipfile.ZipFile, str]:
     return zip_file, xml_file_name
 
 
-@task(log_prints=True)
+@flow(log_prints=True)
 def extract_ratings_data(
     year: int, month: int, game_format: GameFormat
 ) -> pl.DataFrame:
