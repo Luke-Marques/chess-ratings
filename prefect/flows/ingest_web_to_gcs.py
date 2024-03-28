@@ -62,7 +62,7 @@ def parse_xml_file(xml_file: str | Path | bytes) -> pl.DataFrame:
     return df
 
 
-@task(retries=3, checkpoint=False)
+@task(retries=3)
 def stream_zip_file(url: str) -> Tuple[zipfile.ZipFile, str]:
     """Stream a FIDE chess ratings compressed file, without downloading it locally."""
     response = requests.get(url)
