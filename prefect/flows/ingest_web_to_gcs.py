@@ -196,19 +196,31 @@ def ingest_single_month_web_to_gcs(
 
     # extract ratings dataset from web
     df = extract_ratings_data(year, month, game_format)
+    print(
+        f"Raw data extracted for year {year}, month {month}, game format {game_format}:"
+    )
+    print(df.head())
 
     # clean ratings dataset
     df = preprocess_ratings_data(df, year, month)
+    print("Cleaned data:")
+    print(df.head())
 
     # validate ratings dataset using patito data model
+    print("Validating cleaned data...")
     validate_ratings_data(df)
+    print("Done.")
 
     # write cleaned ratings dataset to local parquet file
     if store_local:
+        print(f"Writing cleaned data to local parquet file at {out_path}...")
         write_ratings_data_to_local(df, out_path)
+        print("Done.")
 
     # write cleaned ratings dataset to gcs bucket
+    print(f"Writing cleaned data to parquet file in GCS bucket at {out_path}...")
     write_ratings_data_to_gcs(df, out_path)
+    print("Done.")
 
     return df, out_path
 
