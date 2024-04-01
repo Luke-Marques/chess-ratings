@@ -75,7 +75,7 @@ def stream_zip_file(url: str) -> Tuple[zipfile.ZipFile, str]:
     return zip_file, xml_file_name
 
 
-@flow(log_prints=True)
+@flow(log_prints=True, task_runner=SequentialTaskRunner())
 def extract_ratings_data(
     year: int, month: int, game_format: GameFormat
 ) -> pl.DataFrame:
@@ -178,7 +178,7 @@ def check_if_file_exists_in_gcs(file_path: Path) -> bool:
     return False
 
 
-@flow(log_prints=True)
+@flow(log_prints=True, task_runner=SequentialTaskRunner())
 def ingest_single_month_web_to_gcs(
     year: int,
     month: int,
