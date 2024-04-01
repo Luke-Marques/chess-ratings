@@ -25,7 +25,7 @@ on:
       machine_type:
         description: GCP Compute Engine instance type
         required: true
-        default: 'e2-standard-4'
+        default: 'e2-highmem-4'
         type: string
       block_name:
         description: 'GitHub and CloudRunJob block name'
@@ -59,7 +59,7 @@ jobs:
           prefect_api_url: ${{ secrets.PREFECT_API_URL }}
           artifact_repository: ${{ github.event.inputs.artifact_repository }}  # optional
           region: ${{ github.event.inputs.region }}  # optional
-          gcp_credentials_json: ${{ secrets.PREFECT_GCP_CREDENTIALS }}
+          gcp_credentials_json: ${{ secrets.GCP_CREDENTIALS }}
           zone: ${{ github.event.inputs.zone }}  # optional
           machine_type: ${{ github.event.inputs.machine_type }}  # optional
 
