@@ -11,6 +11,7 @@ import requests
 from prefect_gcp.cloud_storage import GcsBucket
 
 from prefect import flow, task
+from prefect.task_runners import SequentialTaskRunner
 
 from utils.chess_ratings_data_model import ChessRating
 from utils.dates import (
@@ -225,7 +226,7 @@ def ingest_single_month_web_to_gcs(
     return df, out_path
 
 
-@flow()
+@flow(task_runner=SequentialTaskRunner())
 def ingest_web_to_gcs(
     year: int | Iterable[int] = date.today().year,
     month: int | Iterable[int] = date.today().month,
