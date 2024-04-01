@@ -56,10 +56,12 @@ def generate_file_name(year: int, month: int, game_format: GameFormat) -> Path:
     return Path(f"fide_chess_ratings_{year}_{month}_{game_format.value}")
 
 
-@task()
+@task(log_prints=True)
 def parse_xml_file(xml_file: str | Path | bytes) -> pl.DataFrame:
     """Parse an XML format data file to a Polars DataFrame, via Pandas."""
+    print("Parsing streamed XML file to Polars DataFrame...")
     df: pl.DataFrame = pl.from_pandas(pd.read_xml(xml_file))
+    print("Done.")
     return df
 
 
@@ -86,9 +88,12 @@ def extract_ratings_data(
 
     # stream xml file
     zip_file, xml_file_name = stream_zip_file(url)
+    print(zip_file)
+    print(xml_file_name)
 
     # read xml to polars dataframe (using pandas as intermediary)
     with zip_file.open(xml_file_name) as f:
+        print(f)
         df = parse_xml_file(f)
 
     return df
