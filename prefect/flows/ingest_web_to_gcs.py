@@ -173,7 +173,7 @@ def check_if_file_exists_in_gcs(file_path: Path) -> bool:
     return False
 
 
-@flow()
+@flow(log_prints=True)
 def ingest_single_month_web_to_gcs(
     year: int,
     month: int,
