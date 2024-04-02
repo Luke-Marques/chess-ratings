@@ -72,4 +72,5 @@ runs:
           --machine-type "${{ inputs.machine_type }}" \
           --service-account $EMAIL \
           --scopes "cloud-platform" \
-          --container-image "${{ env.IMAGE_URI }}"
+          --container-image "${{ env.IMAGE_URI }}" \
+          --boot-disk-size "10GB"
