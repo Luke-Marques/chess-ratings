@@ -54,8 +54,14 @@ def generate_file_name(year: int, month: int, game_format: GameFormat) -> Path:
     return Path(f"fide_chess_ratings_{year}_{month}_{game_format.value}")
 
 
+@task(retries=3)
+def parse_xml_url_to_dataframe(url: str) -> pl.DataFrame:
+    """Read an ZIP compressed XML file to a Polars DataFrame from a URL, via Pandas."""
+    df: pl.DataFrame = pl.from_pandas(pd.read_xml(url, compression="zip"))
+    return df
 
-@task(log_prints=True, retries=3)
+
+@flow(log_prints=True)
 def extract_ratings_data(
     year: int, month: int, game_format: GameFormat
 ) -> pl.DataFrame:
@@ -68,12 +74,12 @@ def extract_ratings_data(
         f"""Generating download URL for year {year}, month {month}, and game format 
         {game_format.value}..."""
     )
-    url = generate_fide_download_url(year, month, game_format)
+    url: str = generate_fide_download_url(year, month, game_format)
     print("URL: {url}")
 
     # read zip compressed xml file from url to polars dataframe via pandas
     print("Reading compressed XML file to Polars DataFrame...")
-    df: pl.DataFrame = pl.from_pandas(pd.read_xml(url, compression="zip"))
+    df: pl.DataFrame = parse_xml_url_to_dataframe(url)
     print("Done.")
 
     return df
