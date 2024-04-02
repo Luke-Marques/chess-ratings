@@ -75,6 +75,7 @@ def stream_zip_file(url: str) -> Tuple[zipfile.ZipFile, str]:
         zip_file = zipfile.ZipFile(byte_data)
         xml_file_name = zip_file.namelist()[0]
         return zip_file, xml_file_name
+    print(f"Response for url {url} gave 204 status code.")
 
 
 @flow(log_prints=True, task_runner=SequentialTaskRunner())
@@ -94,9 +95,10 @@ def extract_ratings_data(
     print(xml_file_name)
 
     # read xml to polars dataframe (using pandas as intermediary)
-    with zip_file.open(xml_file_name) as f:
-        print(f)
-        df = parse_xml_file(f)
+    if zip_file:
+        with zip_file.open(xml_file_name) as f:
+            print(f)
+            df = parse_xml_file(f)
 
     return df
 
