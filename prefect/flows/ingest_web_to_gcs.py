@@ -71,11 +71,10 @@ def extract_ratings_data(
     """
     # create download url
     print(
-        f"""Generating download URL for year {year}, month {month}, and game format 
-        {game_format.value}..."""
+        f"Generating download URL for year {year}, month {month}, and game format {game_format.value}..."
     )
     url: str = generate_fide_download_url(year, month, game_format)
-    print("URL: {url}")
+    print(f"URL: {url}")
 
     # read zip compressed xml file from url to polars dataframe via pandas
     print("Reading compressed XML file to Polars DataFrame...")
