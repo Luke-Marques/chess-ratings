@@ -36,6 +36,7 @@ def add_missing_columns(
     return df
 
 
+@task()
 def generate_fide_download_url(year: int, month: int, game_format: GameFormat) -> str:
     """
     Generate a download url for FIDE chess ratings data for a given year, month, and
@@ -51,34 +52,14 @@ def generate_fide_download_url(year: int, month: int, game_format: GameFormat) -
     return url
 
 
+@task()
 def generate_file_name(year: int, month: int, game_format: GameFormat) -> Path:
     """Generate a file name for a month's FIDE chess ratings data, as a Path object."""
     return Path(f"fide_chess_ratings_{year}_{month}_{game_format.value}")
 
 
-@task(log_prints=True)
-def parse_xml_file(xml_file: str | Path | bytes) -> pl.DataFrame:
-    """Parse an XML format data file to a Polars DataFrame, via Pandas."""
-    print("Parsing streamed XML file to Polars DataFrame...")
-    df: pl.DataFrame = pl.from_pandas(pd.read_xml(xml_file))
-    print("Done.")
-    return df
 
-
-@task(retries=3)
-def stream_zip_file(url: str) -> Tuple[zipfile.ZipFile, str]:
-    """Stream a FIDE chess ratings compressed file, without downloading it locally."""
-    response = requests.get(url)
-    response.raise_for_status()
-    if response.status_code != 204:
-        byte_data = io.BytesIO(response.content)
-        zip_file = zipfile.ZipFile(byte_data)
-        xml_file_name = zip_file.namelist()[0]
-        return zip_file, xml_file_name
-    print(f"Response for url {url} gave 204 status code.")
-
-
-@flow(log_prints=True, task_runner=SequentialTaskRunner())
+@task(log_prints=True, retries=3)
 def extract_ratings_data(
     year: int, month: int, game_format: GameFormat
 ) -> pl.DataFrame:
@@ -87,18 +68,17 @@ def extract_ratings_data(
     compressed XML file to Polars DataFrame.
     """
     # create download url
+    print(
+        f"""Generating download URL for year {year}, month {month}, and game format 
+        {game_format.value}..."""
+    )
     url = generate_fide_download_url(year, month, game_format)
+    print("URL: {url}")
 
-    # stream xml file
-    zip_file, xml_file_name = stream_zip_file(url)
-    print(zip_file)
-    print(xml_file_name)
-
-    # read xml to polars dataframe (using pandas as intermediary)
-    if zip_file:
-        with zip_file.open(xml_file_name) as f:
-            print(f)
-            df = parse_xml_file(f)
+    # read zip compressed xml file from url to polars dataframe via pandas
+    print("Reading compressed XML file to Polars DataFrame...")
+    df: pl.DataFrame = pl.from_pandas(pd.read_xml(url, compression="zip"))
+    print("Done.")
 
     return df
 
@@ -182,7 +162,7 @@ def check_if_file_exists_in_gcs(file_path: Path) -> bool:
     return False
 
 
-@flow(log_prints=True, task_runner=SequentialTaskRunner())
+@flow(log_prints=True)
 def ingest_single_month_web_to_gcs(
     year: int,
     month: int,
@@ -235,7 +215,7 @@ def ingest_single_month_web_to_gcs(
     return df, out_path
 
 
-@flow(task_runner=SequentialTaskRunner())
+@flow()
 def ingest_web_to_gcs(
     year: int | Iterable[int] = date.today().year,
     month: int | Iterable[int] = date.today().month,
