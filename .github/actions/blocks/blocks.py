@@ -38,7 +38,7 @@ cloud_run_job_block = CloudRunJob(
     cpu=1,
     timeout=3600,
     memory=16,
-    memory_unit="G",
+    memory_unit="Gi",
 )
 cloud_run_job_block.save(args.block_name, overwrite=True)
 
