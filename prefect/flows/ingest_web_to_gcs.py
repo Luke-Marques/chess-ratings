@@ -57,7 +57,7 @@ def generate_file_name(year: int, month: int, game_format: GameFormat) -> Path:
 @task(log_prints=True, retries=3, cache_result_in_memory=False)
 def parse_xml_url_to_dataframe(url: str) -> pl.DataFrame:
     """Read an ZIP compressed XML file to a Polars DataFrame from a URL, via Pandas."""
-    df: pl.DataFrame = pl.from_pandas(pd.read_xml(url, compression="zip"))
+    df = pd.read_xml(url)
     return df
 
 
