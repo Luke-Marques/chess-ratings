@@ -69,10 +69,12 @@ def parse_xml_file(xml_file: str | Path | bytes) -> pl.DataFrame:
 def stream_zip_file(url: str) -> Tuple[zipfile.ZipFile, str]:
     """Stream a FIDE chess ratings compressed file, without downloading it locally."""
     response = requests.get(url)
-    byte_data = io.BytesIO(response.content)
-    zip_file = zipfile.ZipFile(byte_data)
-    xml_file_name = zip_file.namelist()[0]
-    return zip_file, xml_file_name
+    response.raise_for_status()
+    if response.status_code != 204:
+        byte_data = io.BytesIO(response.content)
+        zip_file = zipfile.ZipFile(byte_data)
+        xml_file_name = zip_file.namelist()[0]
+        return zip_file, xml_file_name
 
 
 @flow(log_prints=True, task_runner=SequentialTaskRunner())
