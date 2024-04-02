@@ -25,6 +25,25 @@ def check_title_abbrv(
         raise ValueError(error_message)
 
 
+def request_from_chess_dot_com_public_api(
+    api_endpoint_suffix: str, headers: Dict = {"User-Agent": "default@domain.com"}
+) -> Dict:
+    """Function which queries the public Chess.com API and returns the JSON response."""
+    # Construct the API request URL
+    api_endpoint_url = f"https://api.chess.com/pub/{api_endpoint_suffix}"
+
+    # Query API
+    response = requests.get(api_endpoint_url, headers=headers)
+
+    # Check for empty response body
+    response.raise_for_status()
+    if response.status_code != 204:
+        return response.json()
+    raise ValueError(
+        f"API response for URL {api_endpoint_url} is empty and has status code 204."
+    )
+
+
 def get_titled_players_usernames(
     title_abbrv: Literal[
         "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
@@ -37,21 +56,13 @@ def get_titled_players_usernames(
     # Check title abbreviation string is valid
     check_title_abbrv(title_abbrv)
 
-    # Construct the API URL
-    url = f"https://api.chess.com/pub/titled/{title_abbrv}"
-
-    # Define headers for request
-    default_email = "default@domain.com"
-    headers = {"User-Agent": default_email}
+    # Define the API endpoint suffix
+    api_endpoint_suffix = f"titled/{title_abbrv}"
 
     # Query API
-    response = requests.get(url, headers=headers)
+    response: Dict = request_from_chess_dot_com_public_api(api_endpoint_suffix)
 
-    # Check for empty response body
-    response.raise_for_status()
-    if response.status_code != 204:
-        titled_players_usernames: List[str] = response.json()["players"]
-        return titled_players_usernames
+    return response["players"]
 
 
 def get_player_profile_details(username: str) -> Dict:
@@ -59,21 +70,13 @@ def get_player_profile_details(username: str) -> Dict:
     Function which uses the public Chess.com API to return the profile details of a
     given player.
     """
-    # Construct the API URL
-    url = f"https://api.chess.com/pub/player/{username}"
-
-    # Define headers for request
-    default_email = "default@domain.com"
-    headers = {"User-Agent": default_email}
+    # Define the API endpoint suffix
+    api_endpoint_suffix = f"player/{username}"
 
     # Query API
-    response = requests.get(url, headers=headers)
+    response: Dict = request_from_chess_dot_com_public_api(api_endpoint_suffix)
 
-    # Check for empty response body
-    response.raise_for_status()
-    if response.status_code != 204:
-        player_profile_details: Dict = response.json()
-        return player_profile_details
+    return response
 
 
 def main() -> None:
