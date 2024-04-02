@@ -1,5 +1,3 @@
-import io
-import zipfile
 from datetime import date
 from itertools import product
 from pathlib import Path
@@ -7,11 +5,9 @@ from typing import Iterable, Tuple
 
 import pandas as pd
 import polars as pl
-import requests
 from prefect_gcp.cloud_storage import GcsBucket
 
 from prefect import flow, task
-from prefect.task_runners import SequentialTaskRunner
 
 from utils.chess_ratings_data_model import ChessRating
 from utils.dates import (
