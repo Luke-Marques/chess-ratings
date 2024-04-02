@@ -1,4 +1,4 @@
-from typing import Literal, List
+from typing import Literal, List, Dict
 
 import requests
 
@@ -54,9 +54,32 @@ def get_titled_players_usernames(
         return titled_players_usernames
 
 
+def get_player_profile_details(username: str) -> Dict:
+    """
+    Function which uses the public Chess.com API to return the profile details of a
+    given player.
+    """
+    # Construct the API URL
+    url = f"https://api.chess.com/pub/player/{username}"
+
+    # Define headers for request
+    default_email = "default@domain.com"
+    headers = {"User-Agent": default_email}
+
+    # Query API
+    response = requests.get(url, headers=headers)
+
+    # Check for empty response body
+    response.raise_for_status()
+    if response.status_code != 204:
+        player_profile_details: Dict = response.json()
+        return player_profile_details
+
+
 def main() -> None:
-    response = get_titled_players_usernames("GM")
-    print(response)
+    gm_players = get_titled_players_usernames("GM")
+    gm_player_profile_details = get_player_profile_details(gm_players[0])
+    print(gm_player_profile_details)
 
 
 if __name__ == "__main__":
