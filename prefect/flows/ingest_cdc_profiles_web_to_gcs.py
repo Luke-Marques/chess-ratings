@@ -3,6 +3,7 @@ from typing import Dict, List, Literal
 
 import polars as pl
 from utils.chess_dot_com_api import request_from_chess_dot_com_public_api
+from utils.write_data import write_to_local, write_to_gcs
 
 from pathlib import Path
 
@@ -109,7 +110,7 @@ def get_titled_players_profiles(
     ]
 
     # Convert list of profile dictionaries to Polars DataFrame and clean
-    profiles: pl.DataFrame = clean_player_profiles(pl.DataFrame(profiles))
+    profiles: pl.DataFrame = pl.DataFrame(profiles)
 
     return profiles
 
