@@ -4,6 +4,8 @@ from typing import Dict, List, Literal
 import polars as pl
 from utils.chess_dot_com_api import request_from_chess_dot_com_public_api
 
+from pathlib import Path
+
 
 def check_title_abbrv(
     title_abbrv: Literal[
@@ -110,6 +112,49 @@ def get_titled_players_profiles(
     profiles: pl.DataFrame = clean_player_profiles(pl.DataFrame(profiles))
 
     return profiles
+
+
+def generate_file_name(
+    title_abbrv: Literal[
+        "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
+    ],
+    scrape_date: datetime = datetime.today(),
+    extension: str = "parquet",
+) -> Path:
+    """Generate a filename for the storage of player profiles data locally or in GCS."""
+    # Generate filename
+    file_name = Path(
+        f"{title_abbrv.lower()}_titled_player_profiles_"
+        f"{str(scrape_date.date()).replace("-", "_")}.{extension}"
+    )
+
+    return file_name
+
+
+def generate_file_path(
+    title_abbrv: Literal[
+        "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
+    ],
+    scrape_date: datetime = datetime.today(),
+    extension: str = "parquet",
+) -> Path:
+    """"""
+    # Check that title abbreviation is valid
+    check_title_abbrv(title_abbrv)
+
+    # Generate filename
+    file_name: Path = generate_file_name(title_abbrv, scrape_date, extension)
+
+    # Generate filepath
+    file_path = (
+        Path("data")
+        / "chess_dot_com"
+        / "player_profiles"
+        / title_abbrv.lower()
+        / file_name
+    )
+
+    return file_path
 
 
 def main() -> None:
