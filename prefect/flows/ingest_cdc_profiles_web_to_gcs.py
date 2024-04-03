@@ -51,7 +51,7 @@ def get_titled_players_usernames(
     return response["players"]
 
 
-def get_player_profile_details(username: str) -> Dict:
+def get_player_profile(username: str) -> Dict:
     """
     Function which uses the public Chess.com API to return the profile details of a
     given player.
@@ -106,7 +106,7 @@ def get_titled_players_profiles(
 
     # Get profile details for each titled player
     profiles: List[Dict] = [
-        get_player_profile_details(username) for username in usernames
+        get_player_profile(username) for username in usernames
     ]
 
     # Convert list of profile dictionaries to Polars DataFrame and clean
