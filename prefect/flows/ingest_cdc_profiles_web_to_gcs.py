@@ -62,20 +62,6 @@ def get_player_profile_details(username: str) -> Dict:
     return response
 
 
-def get_player_stats(username: str) -> Dict:
-    """
-    Function which uses the public Chess.com API to return the game statistics of a
-    given player.
-    """
-    # Define the API endpoint suffix
-    api_endpoint_suffix = f"player/{username}/stats"
-
-    # Query API
-    response: Dict = request_from_chess_dot_com_public_api(api_endpoint_suffix)
-
-    return response
-
-
 def get_titled_players_profiles(
     title_abbrv: Literal[
         "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
