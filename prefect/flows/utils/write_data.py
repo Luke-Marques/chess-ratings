@@ -25,3 +25,14 @@ def write_to_gcs(
         df=df, to_path=out_path, serialization_format="parquet"
     )
     return out_path
+
+
+@task()
+def check_if_file_exists_in_gcs(file_path: Path) -> bool:
+    """Determine if a filepath already exists in a GCS Bucket."""
+    gcs_bucket_block = GcsBucket.load("chess-ratings-dev")
+    blobs = gcs_bucket_block.list_blobs()
+    paths = [Path(blob.name) for blob in blobs]
+    if file_path in paths:
+        return True
+    return False
