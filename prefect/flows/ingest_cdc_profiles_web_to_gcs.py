@@ -62,6 +62,33 @@ def get_player_profile_details(username: str) -> Dict:
     return response
 
 
+def clean_player_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
+    """
+    Clean a Chess.com player profiles Polars DataFrame by renaming columns, and adding a
+    column indicating the date of scraping.
+    """
+    profiles_clean = (
+        # Convert DataFrame to LazyFrame
+        profiles.lazy()
+        # Rename columns
+        .rename(
+            {
+                "avatar": "avatar_url",
+                "@id": "api_url",
+                "url": "player_profile_url",
+                "followers": "follower_count",
+            }
+        )
+        # Add column of todays date/time
+        .with_columns(pl.lit(datetime.now()).alias("scrape_datetime"))
+        # Drop any duplicate rows
+        .unique()
+        # Convert LazyFrame back to DataFrame
+        .collect()
+    )
+    return profiles_clean
+
+
 def get_titled_players_profiles(
     title_abbrv: Literal[
         "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
@@ -79,19 +106,8 @@ def get_titled_players_profiles(
         get_player_profile_details(username) for username in usernames
     ]
 
-    # Convert list of profile dictionaries to Polars DataFrame
-    profiles = (
-        pl.DataFrame(profiles)
-        .rename(
-            {
-                "avatar": "avatar_url",
-                "@id": "api_url",
-                "url": "player_profile_url",
-                "followers": "follower_count",
-            }
-        )
-        .with_columns(pl.lit(datetime.now()).alias("scrape_date"))
-    )
+    # Convert list of profile dictionaries to Polars DataFrame and clean
+    profiles: pl.DataFrame = clean_player_profiles(pl.DataFrame(profiles))
 
     return profiles
 
