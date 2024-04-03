@@ -1,6 +1,10 @@
 from typing import Literal, List, Dict
 
+import polars as pl
+
 import requests
+
+from datetime import datetime
 
 
 def check_title_abbrv(
@@ -93,12 +97,42 @@ def get_player_stats(username: str) -> Dict:
     return response
 
 
+def get_titled_players_profiles(
+    title_abbrv: Literal[
+        "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
+    ],
+) -> pl.DataFrame:
+    """
+    Function which uses the public Chess.com API to retrieve profile details of titled
+    players of a given title, as a Polars DataFrame.
+    """
+    # Get list of titled players usernames
+    usernames: List[str] = get_titled_players_usernames(title_abbrv)
+
+    # Get profile details for each titled player
+    profiles: List[Dict] = [
+        get_player_profile_details(username) for username in usernames
+    ]
+
+    # Convert list of profile dictionaries to Polars DataFrame
+    profiles = (
+        pl.DataFrame(profiles)
+        .rename(
+            {
+                "avatar": "avatar_url",
+                "@id": "api_url",
+                "url": "player_profile_url",
+                "followers": "follower_count",
+            }
+        )
+        .with_columns(pl.lit(datetime.now()).alias("scrape_date"))
+    )
+
+    return profiles
+
+
 def main() -> None:
-    gm_players = get_titled_players_usernames("GM")
-    gm_player_profile_details = get_player_profile_details(gm_players[0])
-    print(gm_player_profile_details)
-    gm_player_stats = get_player_stats(gm_players[0])
-    print(gm_player_stats)
+    print(get_titled_players_profiles("GM"))
 
 
 if __name__ == "__main__":
