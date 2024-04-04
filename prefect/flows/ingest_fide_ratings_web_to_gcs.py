@@ -8,7 +8,6 @@ from typing import Iterable, Tuple
 import pandas as pd
 import polars as pl
 import requests
-from prefect_gcp.cloud_storage import GcsBucket
 from utils.chess_ratings_data_model import ChessRating
 from utils.dates import (
     check_valid_month,
