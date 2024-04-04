@@ -129,7 +129,7 @@ def validate_ratings_data(df: pl.DataFrame) -> None:
 
 
 @flow()
-def ingest_single_month_web_to_gcs(
+def ingest_single_month_fide_ratings_web_to_gcs(
     year: int,
     month: int,
     game_format: GameFormat,
@@ -178,7 +178,7 @@ def ingest_single_month_web_to_gcs(
 
 
 @flow()
-def ingest_web_to_gcs(
+def ingest_fide_ratings_web_to_gcs(
     year: int | Iterable[int] = date.today().year,
     month: int | Iterable[int] = date.today().month,
     game_format: str | Iterable[str] = "all",
@@ -208,7 +208,7 @@ def ingest_web_to_gcs(
             game_format = [GameFormat.BLITZ]
 
     for game_format, year, month in product(game_format, year, month):
-        ingest_single_month_web_to_gcs(
+        ingest_single_month_fide_ratings_web_to_gcs(
             year,
             month,
             game_format,
@@ -219,4 +219,4 @@ def ingest_web_to_gcs(
 
 
 if __name__ == "__main__":
-    ingest_web_to_gcs()
+    ingest_fide_ratings_web_to_gcs()
