@@ -5,10 +5,6 @@ from typing import Iterable, Tuple
 
 import pandas as pd
 import polars as pl
-from prefect_gcp.cloud_storage import GcsBucket
-
-from prefect import flow, task
-
 from utils.chess_ratings_data_model import ChessRating
 from utils.dates import (
     check_valid_month,
@@ -16,6 +12,9 @@ from utils.dates import (
     convert_numeric_month_to_string,
 )
 from utils.game_format import GameFormat
+from utils.write_data import check_if_file_exists_in_gcs, write_to_gcs, write_to_local
+
+from prefect import flow, task
 
 
 def add_missing_columns(
@@ -48,10 +47,15 @@ def generate_fide_download_url(year: int, month: int, game_format: GameFormat) -
     return url
 
 
-@task()
-def generate_file_name(year: int, month: int, game_format: GameFormat) -> Path:
-    """Generate a file name for a month's FIDE chess ratings data, as a Path object."""
-    return Path(f"fide_chess_ratings_{year}_{month}_{game_format.value}")
+def generate_file_path(year: int, month: int, game_format: GameFormat) -> Path:
+    """Generate a file path for a month's FIDE chess ratings data, as a Path object."""
+    # Generate file name
+    file_name = Path(f"fide_chess_ratings_{year}_{month}_{game_format.value}")
+
+    # Generate file path
+    file_path = Path("data") / "fide_ratings" / file_name
+
+    return file_path
 
 
 @task(log_prints=True, retries=3, cache_result_in_memory=False)
@@ -124,50 +128,12 @@ def validate_ratings_data(df: pl.DataFrame) -> None:
     ChessRating.validate(df)
 
 
-@task(log_prints=True)
-def write_ratings_data_to_local(df: pl.DataFrame, out_path: Path) -> Path:
-    """Write ratings dataset to local parquet file."""
-    print(
-        "Writing pre-processed FIDE ratings dataset to local parquet file...", end=" "
-    )
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    df.write_parquet(out_path)
-    print("done.")
-    return out_path
-
-
-@task(log_prints=True)
-def write_ratings_data_to_gcs(df: pl.DataFrame, out_path: Path) -> Path:
-    """Write ratings dataset to parquet file in GCS bucket."""
-    print(
-        "Writing pre-processed FIDE ratings dataset to parquet file in GCS bucket...",
-        end=" ",
-    )
-    df: pd.DataFrame = df.to_pandas()  # prefect-gcp requires pandas dataframe
-    gcs_bucket_block = GcsBucket.load("chess-ratings-dev")
-    gcs_bucket_block.upload_from_dataframe(
-        df=df, to_path=out_path, serialization_format="parquet"
-    )
-    print("done.")
-    return out_path
-
-
-@task()
-def check_if_file_exists_in_gcs(file_path: Path) -> bool:
-    """Determine if a filepath already exists in a GCS Bucket."""
-    gcs_bucket_block = GcsBucket.load("chess-ratings-dev")
-    blobs = gcs_bucket_block.list_blobs()
-    paths = [Path(blob.name) for blob in blobs]
-    if file_path in paths:
-        return True
-    return False
-
-
-@flow(log_prints=True)
+@flow()
 def ingest_single_month_web_to_gcs(
     year: int,
     month: int,
     game_format: GameFormat,
+    gcs_bucket_block_name: str = "chess-ratings-dev",
     store_local: bool = False,
     overwrite_existing: bool = False,
 ) -> Tuple[pl.DataFrame, Path] | None:
@@ -176,8 +142,7 @@ def ingest_single_month_web_to_gcs(
     data to GCS, for a given of date (year and month) and game format.
     """
     # generate file path for cleaned ratings dataset
-    out_file_name: Path = generate_file_name(year, month, game_format)
-    out_path = Path("data" / out_file_name)
+    out_path: Path = generate_file_path(year, month, game_format)
 
     # check if ratings dataset file already exists in gcs
     file_exists_in_gcs: bool = check_if_file_exists_in_gcs(out_path)
@@ -204,14 +169,10 @@ def ingest_single_month_web_to_gcs(
 
     # write cleaned ratings dataset to local parquet file
     if store_local:
-        print(f"Writing cleaned data to local parquet file at {out_path}...")
-        write_ratings_data_to_local(df, out_path)
-        print("Done.")
+        write_to_local(df, out_path)
 
     # write cleaned ratings dataset to gcs bucket
-    print(f"Writing cleaned data to parquet file in GCS bucket at {out_path}...")
-    write_ratings_data_to_gcs(df, out_path)
-    print("Done.")
+    write_to_gcs(df, out_path, gcs_bucket_block_name)
 
     return df, out_path
 
@@ -221,6 +182,7 @@ def ingest_web_to_gcs(
     year: int | Iterable[int] = date.today().year,
     month: int | Iterable[int] = date.today().month,
     game_format: str | Iterable[str] = "all",
+    gcs_bucket_block_name: str = "chess-ratings-dev",
     store_local: bool = False,
     overwrite_existing: bool = True,
 ) -> None:
@@ -247,7 +209,12 @@ def ingest_web_to_gcs(
 
     for game_format, year, month in product(game_format, year, month):
         ingest_single_month_web_to_gcs(
-            year, month, game_format, store_local, overwrite_existing
+            year,
+            month,
+            game_format,
+            gcs_bucket_block_name,
+            store_local,
+            overwrite_existing,
         )
 
 
