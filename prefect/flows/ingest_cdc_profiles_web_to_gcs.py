@@ -1,17 +1,17 @@
+import logging
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Literal
 
 import polars as pl
 from utils.chess_dot_com_api import (
     check_title_abbrv,
-    request_from_chess_dot_com_public_api,
     get_titled_players_usernames,
+    request_from_chess_dot_com_public_api,
 )
-from utils.write_data import write_to_local, check_if_file_exists_in_gcs, write_to_gcs
+from utils.write_data import check_if_file_exists_in_gcs, write_to_gcs, write_to_local
 
-from pathlib import Path
-
-from prefect import task, flow
+from prefect import flow, task
 
 
 @task(retries=3)
@@ -57,7 +57,7 @@ def clean_player_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
     return profiles_clean
 
 
-@flow
+@flow(log_prints=True)
 def get_titled_players_profiles(
     title_abbrv: Literal[
         "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
@@ -68,13 +68,20 @@ def get_titled_players_profiles(
     players of a given title, as a Polars DataFrame.
     """
     # Get list of titled players usernames
+    logging.info(f"Fetching usernames for {title_abbrv} title...")
     usernames: List[str] = get_titled_players_usernames(title_abbrv)
+    logging.info("Done.")
+    logging.info(f"Username count for {title_abbrv} title: {len(usernames)}")
 
     # Get profile details for each titled player
+    logging.info("Fetching player profiles for each username...")
     profiles: List[Dict] = [get_player_profile(username) for username in usernames]
+    logging.info("Done.")
 
     # Convert list of profile dictionaries to Polars DataFrame and clean
+    logging.info("Converting JSON profile data to dataframes and cleaning...")
     profiles: pl.DataFrame = clean_player_profiles(pl.DataFrame(profiles))
+    logging.info("Done.")
 
     return profiles
 
@@ -122,7 +129,7 @@ def generate_file_path(
     return file_path
 
 
-@flow()
+@flow
 def ingest_titled_players_profiles(
     title_abbrv: Literal[
         "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
@@ -146,11 +153,15 @@ def ingest_titled_players_profiles(
 
     # Write to local file
     if write_local:
+        logging.info("Writing profile data to local file...")
         write_to_local(profiles, out_file_path)
+        logging.info("Done.")
 
     # Write to file in GCS bucket
     if overwrite_existing or not check_if_file_exists_in_gcs(out_file_path):
+        logging.info("Writing profile data to GCS bucket...")
         write_to_gcs(profiles, out_file_path, gcs_bucket_block_name)
+        logging.info("Done.")
 
     return profiles
 
@@ -177,4 +188,4 @@ def ingest_cdc_profiles_web_to_gcs(
 
 
 if __name__ == "__main__":
-    ingest_cdc_profiles_web_to_gcs()
+    ingest_cdc_profiles_web_to_gcs(["WGM"], write_local=True)
