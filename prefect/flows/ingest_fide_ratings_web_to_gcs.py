@@ -49,9 +49,15 @@ def generate_fide_download_url(year: int, month: int, game_format: GameFormat) -
     return url
 
 
-def generate_file_name(year: int, month: int, game_format: GameFormat) -> Path:
-    """Generate a file name for a month's FIDE chess ratings data, as a Path object."""
-    return Path(f"fide_chess_ratings_{year}_{month}_{game_format.value}")
+def generate_file_path(year: int, month: int, game_format: GameFormat) -> Path:
+    """Generate a file path for a month's FIDE chess ratings data, as a Path object."""
+    # Generate file name
+    file_name = Path(f"fide_chess_ratings_{year}_{month}_{game_format.value}")
+
+    # Generate file path
+    file_path = Path("data") / "fide_ratings" / file_name
+
+    return file_path
 
 
 @task()
@@ -146,8 +152,7 @@ def ingest_single_month_web_to_gcs(
     data to GCS, for a given of date (year and month) and game format.
     """
     # generate file path for cleaned ratings dataset
-    out_file_name: Path = generate_file_name(year, month, game_format)
-    out_path = Path("data" / out_file_name)
+    out_path: Path = generate_file_path(year, month, game_format)
 
     # check if ratings dataset file already exists in gcs
     file_exists_in_gcs: bool = check_if_file_exists_in_gcs(out_path)
