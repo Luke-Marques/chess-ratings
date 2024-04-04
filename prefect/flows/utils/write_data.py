@@ -14,7 +14,7 @@ def write_to_local(df: pl.DataFrame, out_path: Path) -> Path:
     return out_path
 
 
-@task(log_prints=True)
+@task(log_prints=True, retries=3)
 def write_to_gcs(
     df: pl.DataFrame, out_path: Path, gcs_bucket_block_name: str = "chess-ratings-dev"
 ) -> Path:
@@ -27,7 +27,7 @@ def write_to_gcs(
     return out_path
 
 
-@task()
+@task(retries=3)
 def check_if_file_exists_in_gcs(file_path: Path) -> bool:
     """Determine if a filepath already exists in a GCS Bucket."""
     gcs_bucket_block = GcsBucket.load("chess-ratings-dev")

@@ -2,54 +2,16 @@ from datetime import datetime
 from typing import Dict, List, Literal
 
 import polars as pl
-from utils.chess_dot_com_api import request_from_chess_dot_com_public_api
+from utils.chess_dot_com_api import (
+    check_title_abbrv,
+    request_from_chess_dot_com_public_api,
+    get_titled_players_usernames,
+)
 from utils.write_data import write_to_local, check_if_file_exists_in_gcs, write_to_gcs
 
 from pathlib import Path
 
 from prefect import task, flow
-
-
-@task
-def check_title_abbrv(
-    title_abbrv: Literal[
-        "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
-    ],
-) -> None:
-    allowed_title_abbrvs = [
-        "GM",
-        "WGM",
-        "IM",
-        "WIM",
-        "FM",
-        "WFM",
-        "NM",
-        "WNM",
-        "CM",
-        "WCM",
-    ]
-    if title_abbrv not in allowed_title_abbrvs:
-        error_message = f"Title abbreviation is not valid: {title_abbrv}"
-        raise ValueError(error_message)
-
-
-@task(retries=3)
-def get_titled_players_usernames(
-    title_abbrv: Literal[
-        "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
-    ],
-) -> List[str]:
-    """
-    Function which uses the public Chess.com API to return a list of Chess.com usernames
-    of players with a given title.
-    """
-    # Define the API endpoint suffix
-    api_endpoint_suffix = f"titled/{title_abbrv}"
-
-    # Query API
-    response: Dict = request_from_chess_dot_com_public_api(api_endpoint_suffix)
-
-    return response["players"]
 
 
 @task(retries=3)
@@ -193,7 +155,7 @@ def ingest_titled_players_profiles(
     return profiles
 
 
-@flow()
+@flow
 def ingest_cdc_profiles_web_to_gcs(
     title_abbrvs: List[
         Literal["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"]
