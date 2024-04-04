@@ -1,5 +1,3 @@
-import io
-import zipfile
 from datetime import date
 from itertools import product
 from pathlib import Path
@@ -7,7 +5,6 @@ from typing import Iterable, Tuple
 
 import pandas as pd
 import polars as pl
-import requests
 from utils.chess_ratings_data_model import ChessRating
 from utils.dates import (
     check_valid_month,
@@ -34,6 +31,7 @@ def add_missing_columns(
     return df
 
 
+@task()
 def generate_fide_download_url(year: int, month: int, game_format: GameFormat) -> str:
     """
     Generate a download url for FIDE chess ratings data for a given year, month, and
@@ -60,21 +58,11 @@ def generate_file_path(year: int, month: int, game_format: GameFormat) -> Path:
     return file_path
 
 
-@task()
-def parse_xml_file(xml_file: str | Path | bytes) -> pl.DataFrame:
-    """Parse an XML format data file to a Polars DataFrame, via Pandas."""
-    df: pl.DataFrame = pl.from_pandas(pd.read_xml(xml_file))
+@task(log_prints=True, retries=3, cache_result_in_memory=False)
+def parse_xml_url_to_dataframe(url: str) -> pl.DataFrame:
+    """Read an ZIP compressed XML file to a Polars DataFrame from a URL, via Pandas."""
+    df: pl.DataFrame = pl.from_pandas(pd.read_xml(url))
     return df
-
-
-@task(retries=3)
-def stream_zip_file(url: str) -> Tuple[zipfile.ZipFile, str]:
-    """Stream a FIDE chess ratings compressed file, without downloading it locally."""
-    response = requests.get(url)
-    byte_data = io.BytesIO(response.content)
-    zip_file = zipfile.ZipFile(byte_data)
-    xml_file_name = zip_file.namelist()[0]
-    return zip_file, xml_file_name
 
 
 @flow(log_prints=True)
@@ -86,14 +74,16 @@ def extract_ratings_data(
     compressed XML file to Polars DataFrame.
     """
     # create download url
-    url = generate_fide_download_url(year, month, game_format)
+    print(
+        f"Generating download URL for year {year}, month {month}, and game format {game_format.value}..."
+    )
+    url: str = generate_fide_download_url(year, month, game_format)
+    print(f"URL: {url}")
 
-    # stream xml file
-    zip_file, xml_file_name = stream_zip_file(url)
-
-    # read xml to polars dataframe (using pandas as intermediary)
-    with zip_file.open(xml_file_name) as f:
-        df = parse_xml_file(f)
+    # read zip compressed xml file from url to polars dataframe via pandas
+    print("Reading compressed XML file to Polars DataFrame...")
+    df: pl.DataFrame = parse_xml_url_to_dataframe(url)
+    print("Done.")
 
     return df
 
@@ -162,16 +152,24 @@ def ingest_single_month_web_to_gcs(
 
     # extract ratings dataset from web
     df = extract_ratings_data(year, month, game_format)
+    print(
+        f"Raw data extracted for year {year}, month {month}, game format {game_format}:"
+    )
+    print(df.head())
 
     # clean ratings dataset
-    df_clean = preprocess_ratings_data(df, year, month)
+    df = preprocess_ratings_data(df, year, month)
+    print("Cleaned data:")
+    print(df.head())
 
     # validate ratings dataset using patito data model
-    validate_ratings_data(df_clean)
+    print("Validating cleaned data...")
+    validate_ratings_data(df)
+    print("Done.")
 
     # write cleaned ratings dataset to local parquet file
     if store_local:
-        write_to_local(df_clean, out_path)
+        write_to_local(df, out_path)
 
     # write cleaned ratings dataset to gcs bucket
     write_to_gcs(df, out_path, gcs_bucket_block_name)

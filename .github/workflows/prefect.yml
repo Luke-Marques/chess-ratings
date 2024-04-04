@@ -25,7 +25,7 @@ on:
       machine_type:
         description: GCP Compute Engine instance type
         required: true
-        default: 'e2-standard-4'
+        default: 'e2-highmem-4'
         type: string
       block_name:
         description: 'GitHub and CloudRunJob block name'
