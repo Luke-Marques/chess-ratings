@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -97,19 +98,28 @@ def get_titled_player_stats(
     titled players of a given title.
     """
     # Get usernames of titled players for title abbreviation
+    logging.info(f"Fetching usernames for {title_abbrv} title...")
     usernames: List[str] = get_titled_players_usernames(title_abbrv)
+    logging.info("Done.")
+    logging.info(f"Username count for {title_abbrv} title: {len(usernames)}")
 
     # Get player statistics for each username
+    logging.info("Fetching player game statistics for each username...")
     game_stats_dfs: List[Dict[str, pl.DataFrame]] = [
         get_player_stats(username) for username in usernames
     ]
+    logging.info("Done")
 
     # Concatenate game stats dataframes
+    logging.info("Concatenating player's game statistics DataFrames...")
     stats = concatenate_dataframes(game_stats_dfs)
+    logging.info("Done.")
 
     # Clean game stats dataframes
+    logging.info("Cleaning game statistics DataFrames...")
     for game_format, game_stats in stats.items():
         stats[game_format] = clean_game_stats(game_stats)
+    logging.info("Done.")
 
     return stats
 
@@ -171,11 +181,15 @@ def ingest_titled_players_stats(
 
         # Write to local file
         if write_local:
+            logging.info("Writing game statistics data to local file...")
             write_to_local(game_stats, out_file_path)
+            logging.info("Done.")
 
         # Write to file in GCS bucket
         if overwrite_existing or not check_if_file_exists_in_gcs(out_file_path):
+            logging.info("Writing game statistics data to GCS bucket...")
             write_to_gcs(game_stats, out_file_path, gcs_bucket_block_name)
+            logging.info("Done.")
 
     return stats
 
