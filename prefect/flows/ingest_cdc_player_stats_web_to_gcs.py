@@ -6,129 +6,126 @@ from typing import Dict, List, Literal
 
 import pandas as pd
 import polars as pl
-from utils.chess_dot_com_api import (
-    check_title_abbrv,
-    get_titled_players_usernames,
-    request_from_chess_dot_com_public_api,
-)
+from utils.chess_dot_com_api import ChessTitle, ChessAPI
 from utils.write_data import check_if_file_exists_in_gcs, write_to_gcs, write_to_local
 
 from prefect import flow, task
 
 
-@task(retries=3)
-def get_player_id(username: str) -> int:
-    """
-    Function which uses the public Chess.com API to retrieve the non-changing, Chess.com
-    player ID for a given player username.
-    """
-    # Define the API endpoint suffix
-    api_endpoint_suffix = f"player/{username}"
+@task(retries=3, log_prints=True)
+def get_titled_usernames(
+    title_abbrvs: List[ChessTitle] | ChessTitle,
+) -> List[str]:
+    # Retrieve usernames from Chess.com API
+    print(f"Fetching usernames for {','.join(title_abbrvs)} title(s)...")
+    usernames: Dict[str, List[str]] = ChessAPI().get_titled_players_usernames(
+        title_abbrvs
+    )
+    print("Done.")
 
-    # Query API
-    response: Dict = request_from_chess_dot_com_public_api(api_endpoint_suffix)
+    # Display username counts per title
+    print("Displaying username count for each title...")
+    usernames_list = []
+    for title, users in usernames.items():
+        print(f"\t{title}: {len(users)}")
+        usernames_list += users
+    print(f"\tTotal username count: {len(usernames_list)}")
 
-    # Extract player id
-    player_id: int = response["player_id"]
-
-    return player_id
+    return usernames_list
 
 
-@flow(retries=3)
-def get_player_stats(username: str) -> Dict[str, pl.DataFrame]:
-    """
-    Function which uses the public Chess.com API to return the game statistics of a
-    given player.
-    """
-    # Get player id
-    player_id: int = get_player_id(username)
+@task(retries=3, log_prints=True)
+def get_all_game_formats_stats(usernames: List[str]) -> List[Dict]:
+    print("Fetching player game statistics for each username...")
+    all_game_formats_stats = []
+    for index, username in enumerate(usernames):
+        print(f"Player {index+1:_} of {len(usernames):_}.")
+        player_id: int = ChessAPI().get_player_id(username)
+        player_stats: Dict = ChessAPI().get_player_stats(username)
+        player_stats["player_id"] = player_id
+        all_game_formats_stats.append(player_stats)
+    print("Done.")
+    return all_game_formats_stats
 
-    # Get player game stats
-    game_stats_api_endpoint_suffix = f"player/{username}/stats"
-    game_stats: Dict = request_from_chess_dot_com_public_api(
-        game_stats_api_endpoint_suffix
+
+@task
+def convert_json_stats_to_dataframes(
+    all_game_formats_stats: List[Dict],
+) -> pl.DataFrame:
+    all_game_formats_stats: pl.DataFrame = pl.from_pandas(
+        pd.json_normalize(all_game_formats_stats)
+    )
+    return all_game_formats_stats
+
+
+@task
+def seperate_game_formats(
+    all_game_formats_stats: pl.DataFrame,
+) -> Dict[str, pl.DataFrame]:
+    # Get list of game formats present in DataFrame
+    game_formats: List[str] = set(
+        [
+            col.split(".")[0]
+            for col in all_game_formats_stats.columns
+            if col not in ["fide", "player_id"]
+        ]
     )
 
-    # Convert each game format's stats to Polars DataFrame and store in dictionary
-    game_stats_dfs = {}
-    for game_format in game_stats:
-        if game_format != "fide":
-            game_stats_dfs[game_format] = pl.from_pandas(
-                pd.json_normalize(game_stats[game_format], sep="_")
-            ).with_columns(pl.lit(player_id).alias("player_id"))
+    # Seperate DataFrame to per game format DataFrames and store in dictionary
+    stats = {}
+    for game_format in game_formats:
+        stats[game_format] = all_game_formats_stats.select(
+            "player_id", pl.col(rf"^{game_format}.*$")
+        ).rename(
+            lambda col: col
+            if col == "player_id"
+            else col.split(".", maxsplit=1)[1].replace()
+        )
 
-    return game_stats_dfs
-
-
-@task
-def concatenate_dataframes(
-    dict_list: List[Dict[str, pl.DataFrame]],
-) -> Dict[str, pl.DataFrame]:
-    """
-    Given a list of dictionaries containing string keys and Polars DataFrame values,
-    concatenate all DataFrames belonging to the same key.
-    """
-    grouped_dataframes = defaultdict(list)
-    for d in dict_list:
-        for key, df in d.items():
-            grouped_dataframes[key].append(df)
-    result = {
-        key: pl.concat(dfs, how="diagonal_relaxed")
-        for key, dfs in grouped_dataframes.items()
-    }
-    return result
+    return stats
 
 
 @task
-def clean_game_stats(df: pl.DataFrame) -> pl.DataFrame:
-    """Clean Chess.com game statistics DataFrames."""
-    # Convert datetime columns to proper datatype
-    df = df.with_columns(pl.from_epoch(pl.col(r"^*date*$")))
-    return df
+def clean_stats_dataframe(stats: pl.DataFrame) -> pl.DataFrame:
+    stats = stats.rename(
+        lambda col: col
+        if len(col.split(".")) == 1
+        else col.split(".", maxsplit=1)[1].replace()
+    ).with_columns(pl.from_epoch(pl.col(r"^.*date.*$")))
+    return stats
 
 
 @flow
 def get_titled_player_stats(
-    title_abbrv: Literal[
-        "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
-    ],
+    title_abbrvs: List[ChessTitle] | ChessTitle,
 ) -> Dict[str, pl.DataFrame]:
     """
     Function which uses the public Chess.com API to return the game statistics of all
     titled players of a given title.
     """
     # Get usernames of titled players for title abbreviation
-    logging.info(f"Fetching usernames for {title_abbrv} title...")
-    usernames: List[str] = get_titled_players_usernames(title_abbrv)
-    logging.info("Done.")
-    logging.info(f"Username count for {title_abbrv} title: {len(usernames)}")
+    usernames: List[str] = get_titled_usernames(title_abbrvs)
 
     # Get player statistics for each username
-    logging.info("Fetching player game statistics for each username...")
-    game_stats_dfs: List[Dict[str, pl.DataFrame]] = [
-        get_player_stats(username) for username in usernames
-    ]
-    logging.info("Done")
+    all_game_formats_stats = get_all_game_formats_stats(usernames)
 
-    # Concatenate game stats dataframes
-    logging.info("Concatenating player's game statistics DataFrames...")
-    stats = concatenate_dataframes(game_stats_dfs)
-    logging.info("Done.")
+    # Convert list of game stats dictionaries to Polars DataFrame
+    all_game_formats_stats: pl.DataFrame = convert_json_stats_to_dataframes(
+        all_game_formats_stats
+    )
 
-    # Clean game stats dataframes
-    logging.info("Cleaning game statistics DataFrames...")
-    for game_format, game_stats in stats.items():
-        stats[game_format] = clean_game_stats(game_stats)
-    logging.info("Done.")
+    # Seperate game format columns to seperate DataFrames
+    stats: Dict[str, pl.DataFrame] = seperate_game_formats(all_game_formats_stats)
+
+    # Clean stats DataFrames
+    for game_format, stats_df in stats.items():
+        stats[game_format] = clean_stats_dataframe(stats_df)
 
     return stats
 
 
 @task
 def generate_file_path(
-    title_abbrv: Literal[
-        "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
-    ],
     game_format: str,
     scrape_date: datetime = datetime.today(),
     extension: str = "parquet",
@@ -139,28 +136,21 @@ def generate_file_path(
     """
     # Generate filename
     file_name: Path = Path(
-        f"{title_abbrv.lower()}_titled_player_{game_format}_stats_"
+        f"titled_players_{game_format}_stats_"
         f"{str(scrape_date.date()).replace("-", "_")}.{extension}"
     )
 
     # Generate filepath
     file_path = (
-        Path("data")
-        / "chess_dot_com"
-        / "player_game_stats"
-        / game_format
-        / title_abbrv.lower()
-        / file_name
+        Path("data") / "chess_dot_com" / "player_game_stats" / game_format / file_name
     )
 
     return file_path
 
 
-@flow
+@flow(log_prints=True)
 def ingest_titled_players_stats(
-    title_abbrv: Literal[
-        "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
-    ],
+    title_abbrvs: List[ChessTitle] | ChessTitle,
     gcs_bucket_block_name: str = "chess-ratings-dev",
     write_local: bool = False,
     overwrite_existing: bool = True,
@@ -169,15 +159,12 @@ def ingest_titled_players_stats(
     Sub-flow that retrieves titled player game statistics using the public Chess.com API
     and writes these profiles to files in GCS bucket and optionally locally.
     """
-    # Check that title abbreviation is valid
-    check_title_abbrv(title_abbrv)
-
-    # Get cleaned DataFrame of titled players Chess.com game statistics
-    stats: Dict[str, pl.DataFrame] = get_titled_player_stats(title_abbrv)
+    # Get cleaned DataFrames of titled players Chess.com game statistics
+    stats: Dict[str, pl.DataFrame] = get_titled_player_stats(title_abbrvs)
 
     for game_format, game_stats in stats.items():
         # Generate out file path
-        out_file_path: Path = generate_file_path(title_abbrv, game_format)
+        out_file_path: Path = generate_file_path(game_format)
 
         # Write to local file
         if write_local:
@@ -194,7 +181,7 @@ def ingest_titled_players_stats(
     return stats
 
 
-@flow
+@flow(log_prints=True)
 def ingest_cdc_player_stats_web_to_gcs(
     title_abbrvs: List[
         Literal["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"]
