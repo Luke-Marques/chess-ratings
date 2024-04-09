@@ -204,7 +204,11 @@ def ingest_cdc_player_stats_web_to_gcs(
         title_abbrvs = [title_abbrvs]
     for title_abbrv in title_abbrvs:
         ingest_titled_players_stats(
-            title_abbrv, gcs_bucket_block_name, write_local, overwrite_existing
+            title_abbrv,
+            gcs_bucket_block_name,
+            write_local,
+            overwrite_existing,
+            return_state=True,
         )
 
 
