@@ -147,7 +147,7 @@ def generate_file_path(
     return file_path
 
 
-@flow(log_prints=True)
+@flow(log_prints=True, cache_result_in_memory=False, persist_result=False)
 def ingest_titled_players_profiles(
     title_abbrv: ChessTitle,
     gcs_bucket_block_name: str = "chess-ratings-dev",

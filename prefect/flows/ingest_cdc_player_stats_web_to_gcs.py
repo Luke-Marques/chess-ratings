@@ -83,7 +83,7 @@ def clean_stats_dataframe(stats: pl.DataFrame) -> pl.DataFrame:
         else col.split(".", maxsplit=1)[1].replace(".", "_")
     ).with_columns(
         pl.from_epoch(pl.col(r"^.*date.*$")),  # convert all date columns date dtype
-        pl.lit(datetime.today()).alias("scrape_date")  # add date scraped as column
+        pl.lit(datetime.today()).alias("scrape_date"),  # add date scraped as column
     )
     return stats
 
@@ -144,7 +144,7 @@ def generate_file_path(
     return file_path
 
 
-@flow(log_prints=True)
+@flow(log_prints=True, cache_result_in_memory=False, persist_result=False)
 def ingest_titled_players_stats(
     title_abbrv: ChessTitle,
     gcs_bucket_block_name: str = "chess-ratings-dev",
