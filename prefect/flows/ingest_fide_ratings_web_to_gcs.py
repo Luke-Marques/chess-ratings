@@ -31,7 +31,7 @@ def add_missing_columns(
     return df
 
 
-@task()
+@task
 def generate_fide_download_url(year: int, month: int, game_format: GameFormat) -> str:
     """
     Generate a download url for FIDE chess ratings data for a given year, month, and
@@ -88,7 +88,7 @@ def extract_ratings_data(
     return df
 
 
-@task()
+@task
 def preprocess_ratings_data(df: pl.DataFrame, year: int, month: int) -> pl.DataFrame:
     """Initial preprocessing of raw FIDE chess ratings dataset."""
     # add missing columns to dataframe
@@ -120,7 +120,7 @@ def preprocess_ratings_data(df: pl.DataFrame, year: int, month: int) -> pl.DataF
     return df.collect()
 
 
-@task()
+@task
 def validate_ratings_data(df: pl.DataFrame) -> None:
     """
     Validate ratings records in FIDE chess ratings dataset using Patito data model.
@@ -174,10 +174,10 @@ def ingest_single_month_fide_ratings_web_to_gcs(
     # write cleaned ratings dataset to gcs bucket
     write_to_gcs(df, out_path, gcs_bucket_block_name)
 
-    return df, out_path
+    return df
 
 
-@flow()
+@flow
 def ingest_fide_ratings_web_to_gcs(
     year: int | Iterable[int] = date.today().year,
     month: int | Iterable[int] = date.today().month,
@@ -215,6 +215,7 @@ def ingest_fide_ratings_web_to_gcs(
             gcs_bucket_block_name,
             store_local,
             overwrite_existing,
+            return_state=True,  # allows sub-flow to not store result
         )
 
 
