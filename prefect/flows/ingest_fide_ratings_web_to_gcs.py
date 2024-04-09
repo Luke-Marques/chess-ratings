@@ -50,10 +50,10 @@ def generate_fide_download_url(year: int, month: int, game_format: GameFormat) -
 def generate_file_path(year: int, month: int, game_format: GameFormat) -> Path:
     """Generate a file path for a month's FIDE chess ratings data, as a Path object."""
     # Generate file name
-    file_name = Path(f"fide_chess_ratings_{year}_{month}_{game_format.value}")
+    file_name = Path(f"fide_chess_ratings_{year}_{month:02d}_{game_format.value}")
 
     # Generate file path
-    file_path = Path("data") / "fide_ratings" / file_name
+    file_path = Path("data") / "fide_ratings" / game_format / file_name
 
     return file_path
 
