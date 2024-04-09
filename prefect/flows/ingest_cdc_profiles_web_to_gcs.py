@@ -1,113 +1,128 @@
-import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Literal
+from typing import Dict, List
 
 import polars as pl
-from utils.chess_dot_com_api import (
-    check_title_abbrv,
-    get_titled_players_usernames,
-    request_from_chess_dot_com_public_api,
-)
+from utils.chess_dot_com_api import ChessTitle, ChessAPI
 from utils.write_data import check_if_file_exists_in_gcs, write_to_gcs, write_to_local
 
 from prefect import flow, task
 
 
-@task(retries=3)
-def get_player_profile(username: str) -> Dict:
+@task(retries=3, log_prints=True)
+def get_titled_usernames(
+    title_abbrv: ChessTitle,
+) -> List[str]:
+    # Retrieve usernames from Chess.com API
+    print(f"Fetching {title_abbrv} titled players' usernames...")
+    usernames: List[str] = ChessAPI().get_titled_players_usernames(title_abbrv)[
+        title_abbrv
+    ]
+
+    # Display username count
+    print(f"Done. {len(usernames):_} usernames retrieved.")
+
+    return usernames
+
+
+@task(retries=3, log_prints=True)
+def get_player_profiles(usernames: List[str]) -> Dict:
     """
-    Function which uses the public Chess.com API to return the profile details of a
-    given player.
+    Wrapper function for ChessAPI class method get_player_profile to use Prefect task
+    API.
     """
-    # Define the API endpoint suffix
-    api_endpoint_suffix = f"player/{username}"
+    print("Fetching player profiles for each username...")
+    profiles = []
+    for index, username in enumerate(usernames):
+        print(f"Player {index+1:_} of {len(usernames):_}")
+        profiles.append(ChessAPI().get_player_profile(username))
+    return profiles
 
-    # Query API
-    response: Dict = request_from_chess_dot_com_public_api(api_endpoint_suffix)
 
-    return response
+@task(log_prints=True)
+def convert_player_profiles_from_dictionaries_to_dataframe(
+    profiles: List[Dict],
+) -> pl.DataFrame:
+    print("Converting player profile from dictionary to Polars DataFrame...")
+    profiles: pl.DataFrame = pl.DataFrame(profiles)
+    print("Done.")
+    return profiles
 
 
-@task
+@task(log_prints=True)
 def clean_player_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
     """
     Clean a Chess.com player profiles Polars DataFrame by renaming columns, and adding a
     column indicating the date of scraping.
     """
+    print("Cleaning player profile dataframe...")
     profiles_clean = (
-        # Convert DataFrame to LazyFrame
         profiles.lazy()
-        # Rename columns
         .rename(
             {
                 "avatar": "avatar_url",
                 "@id": "api_url",
-                "url": "player_profile_url",
+                "url": "profile_url",
                 "followers": "follower_count",
             }
         )
         # Add column of todays date/time
         .with_columns(pl.lit(datetime.now()).alias("scrape_datetime"))
-        # Drop any duplicate rows
         .unique()
-        # Convert LazyFrame back to DataFrame
+        .select(
+            "player_id",
+            "username",
+            "name",
+            "title",
+            "profile_url",
+            "avatar_url",
+            "api_url",
+            "follower_count",
+            "country",
+            "location",
+            "last_online",
+            "joined",
+            "status",
+            "is_streamer",
+            "twitch_url",
+            "verified",
+            "league",
+            "scrape_datetime",
+        )
         .collect()
     )
+    print("Done.")
     return profiles_clean
 
 
 @flow(log_prints=True)
 def get_titled_players_profiles(
-    title_abbrv: Literal[
-        "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
-    ],
+    title_abbrv: ChessTitle,
 ) -> pl.DataFrame:
     """
     Function which uses the public Chess.com API to retrieve profile details of titled
     players of a given title, as a Polars DataFrame.
     """
     # Get list of titled players usernames
-    logging.info(f"Fetching usernames for {title_abbrv} title...")
-    usernames: List[str] = get_titled_players_usernames(title_abbrv)
-    logging.info("Done.")
-    logging.info(f"Username count for {title_abbrv} title: {len(usernames)}")
+    usernames: List[str] = get_titled_usernames(title_abbrv)
 
     # Get profile details for each titled player
-    logging.info("Fetching player profiles for each username...")
-    profiles: List[Dict] = [get_player_profile(username) for username in usernames]
-    logging.info("Done.")
+    profiles: List[Dict] = get_player_profiles(usernames)
 
-    # Convert list of profile dictionaries to Polars DataFrame and clean
-    logging.info("Converting JSON profile data to dataframes and cleaning...")
-    profiles: pl.DataFrame = clean_player_profiles(pl.DataFrame(profiles))
-    logging.info("Done.")
+    # Convert list of profile dictionaries to Polars DataFrame
+    profiles: pl.DataFrame = convert_player_profiles_from_dictionaries_to_dataframe(
+        profiles
+    )
+
+    # Clean player profiles DataFrame
+    profiles: pl.DataFrame = clean_player_profiles(profiles)
 
     return profiles
 
 
-def generate_file_name(
-    title_abbrv: Literal[
-        "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
-    ],
-    scrape_date: datetime = datetime.today(),
-    extension: str = "parquet",
-) -> Path:
-    """Generate a filename for the storage of player profiles data locally or in GCS."""
-    # Generate filename
-    file_name = Path(
-        f"{title_abbrv.lower()}_titled_player_profiles_"
-        f"{str(scrape_date.date()).replace("-", "_")}.{extension}"
-    )
-
-    return file_name
-
-
 @task
 def generate_file_path(
-    title_abbrv: Literal[
-        "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
-    ],
+    title_abbrv: ChessTitle,
     scrape_date: datetime = datetime.today(),
     extension: str = "parquet",
 ) -> Path:
@@ -115,7 +130,10 @@ def generate_file_path(
     Generate a full file path for the storage of player profiles data locally or in GCS.
     """
     # Generate filename
-    file_name: Path = generate_file_name(title_abbrv, scrape_date, extension)
+    file_name = Path(
+        f"{title_abbrv.lower()}_player_profiles_"
+        f"{str(scrape_date.date()).replace("-", "_")}.{extension}"
+    )
 
     # Generate filepath
     file_path = (
@@ -129,11 +147,9 @@ def generate_file_path(
     return file_path
 
 
-@flow
+@flow(log_prints=True)
 def ingest_titled_players_profiles(
-    title_abbrv: Literal[
-        "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
-    ],
+    title_abbrv: ChessTitle,
     gcs_bucket_block_name: str = "chess-ratings-dev",
     write_local: bool = False,
     overwrite_existing: bool = True,
@@ -142,9 +158,6 @@ def ingest_titled_players_profiles(
     Sub-flow that retrieves titled player profile details using the public Chess.com API
     and writes these profiles to files in GCS bucket and optionally locally.
     """
-    # Check that title abbreviation is valid
-    check_title_abbrv(title_abbrv)
-
     # Get cleaned DataFrame of titled players profile details
     profiles: pl.DataFrame = get_titled_players_profiles(title_abbrv)
 
@@ -153,24 +166,33 @@ def ingest_titled_players_profiles(
 
     # Write to local file
     if write_local:
-        logging.info("Writing profile data to local file...")
+        print("Writing profile data to local file...")
         write_to_local(profiles, out_file_path)
-        logging.info("Done.")
+        print("Done.")
 
     # Write to file in GCS bucket
     if overwrite_existing or not check_if_file_exists_in_gcs(out_file_path):
-        logging.info("Writing profile data to GCS bucket...")
+        print("Writing profile data to GCS bucket...")
         write_to_gcs(profiles, out_file_path, gcs_bucket_block_name)
-        logging.info("Done.")
+        print("Done.")
 
     return profiles
 
 
 @flow
 def ingest_cdc_profiles_web_to_gcs(
-    title_abbrvs: List[
-        Literal["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"]
-    ] = ["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"],
+    title_abbrvs: List[ChessTitle] | ChessTitle = [
+        "GM",
+        "WGM",
+        "IM",
+        "WIM",
+        "FM",
+        "WFM",
+        "NM",
+        "WNM",
+        "CM",
+        "WCM",
+    ],
     gcs_bucket_block_name: str = "chess-ratings-dev",
     write_local: bool = False,
     overwrite_existing: bool = True,
@@ -180,7 +202,8 @@ def ingest_cdc_profiles_web_to_gcs(
     using the public Chess.com API and writes these profiles to files in GCS bucket and
     optionally locally.
     """
-    # Ingest titled player profiles for each title specified
+    if not isinstance(title_abbrvs, list):
+        title_abbrvs = [title_abbrvs]
     for title_abbrv in title_abbrvs:
         ingest_titled_players_profiles(
             title_abbrv, gcs_bucket_block_name, write_local, overwrite_existing
@@ -188,4 +211,4 @@ def ingest_cdc_profiles_web_to_gcs(
 
 
 if __name__ == "__main__":
-    ingest_cdc_profiles_web_to_gcs(["WGM"], write_local=True)
+    ingest_cdc_profiles_web_to_gcs(["WGM", "WIM"], write_local=True)

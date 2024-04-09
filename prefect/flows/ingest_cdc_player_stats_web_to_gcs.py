@@ -1,8 +1,6 @@
-import logging
-from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Literal
+from typing import Dict, List
 
 import pandas as pd
 import polars as pl
@@ -14,29 +12,25 @@ from prefect import flow, task
 
 @task(retries=3, log_prints=True)
 def get_titled_usernames(
-    title_abbrvs: List[ChessTitle] | ChessTitle,
+    title_abbrv: ChessTitle,
 ) -> List[str]:
     # Retrieve usernames from Chess.com API
-    print(f"Fetching usernames for {','.join(title_abbrvs)} title(s)...")
-    usernames: Dict[str, List[str]] = ChessAPI().get_titled_players_usernames(
-        title_abbrvs
-    )
-    print("Done.")
+    print(f"Fetching {title_abbrv} titled players' usernames...")
+    usernames: List[str] = ChessAPI().get_titled_players_usernames(title_abbrv)[
+        title_abbrv
+    ]
 
-    # Display username counts per title
-    print("Displaying username count for each title...")
-    usernames_list = []
-    for title, users in usernames.items():
-        print(f"\t{title}: {len(users)}")
-        usernames_list += users
-    print(f"\tTotal username count: {len(usernames_list)}")
+    # Display username count
+    print(f"Done. {len(usernames):_} usernames retrieved.")
 
-    return usernames_list
+    return usernames
 
 
 @task(retries=3, log_prints=True)
-def get_all_game_formats_stats(usernames: List[str]) -> List[Dict]:
-    print("Fetching player game statistics for each username...")
+def get_all_game_formats_stats(
+    usernames: List[str], title_abbrv: ChessTitle
+) -> List[Dict]:
+    print(f"Fetching player game statistics for each {title_abbrv} titled player...")
     all_game_formats_stats = []
     for index, username in enumerate(usernames):
         print(f"Player {index+1:_} of {len(usernames):_}.")
@@ -76,10 +70,6 @@ def seperate_game_formats(
     for game_format in game_formats:
         stats[game_format] = all_game_formats_stats.select(
             "player_id", pl.col(rf"^{game_format}.*$")
-        ).rename(
-            lambda col: col
-            if col == "player_id"
-            else col.split(".", maxsplit=1)[1].replace()
         )
 
     return stats
@@ -90,24 +80,29 @@ def clean_stats_dataframe(stats: pl.DataFrame) -> pl.DataFrame:
     stats = stats.rename(
         lambda col: col
         if len(col.split(".")) == 1
-        else col.split(".", maxsplit=1)[1].replace()
-    ).with_columns(pl.from_epoch(pl.col(r"^.*date.*$")))
+        else col.split(".", maxsplit=1)[1].replace(".", "_")
+    ).with_columns(
+        pl.from_epoch(pl.col(r"^.*date.*$")),  # convert all date columns date dtype
+        pl.lit(datetime.today()).alias("scrape_date")  # add date scraped as column
+    )
     return stats
 
 
 @flow
 def get_titled_player_stats(
-    title_abbrvs: List[ChessTitle] | ChessTitle,
+    title_abbrv: ChessTitle,
 ) -> Dict[str, pl.DataFrame]:
     """
     Function which uses the public Chess.com API to return the game statistics of all
     titled players of a given title.
     """
     # Get usernames of titled players for title abbreviation
-    usernames: List[str] = get_titled_usernames(title_abbrvs)
+    usernames: List[str] = get_titled_usernames(title_abbrv)
 
     # Get player statistics for each username
-    all_game_formats_stats = get_all_game_formats_stats(usernames)
+    all_game_formats_stats: List[Dict] = get_all_game_formats_stats(
+        usernames, title_abbrv
+    )
 
     # Convert list of game stats dictionaries to Polars DataFrame
     all_game_formats_stats: pl.DataFrame = convert_json_stats_to_dataframes(
@@ -126,6 +121,7 @@ def get_titled_player_stats(
 
 @task
 def generate_file_path(
+    title_abbrv: ChessTitle,
     game_format: str,
     scrape_date: datetime = datetime.today(),
     extension: str = "parquet",
@@ -136,7 +132,7 @@ def generate_file_path(
     """
     # Generate filename
     file_name: Path = Path(
-        f"titled_players_{game_format}_stats_"
+        f"{title_abbrv.lower()}_{game_format}_stats_"
         f"{str(scrape_date.date()).replace("-", "_")}.{extension}"
     )
 
@@ -150,7 +146,7 @@ def generate_file_path(
 
 @flow(log_prints=True)
 def ingest_titled_players_stats(
-    title_abbrvs: List[ChessTitle] | ChessTitle,
+    title_abbrv: ChessTitle,
     gcs_bucket_block_name: str = "chess-ratings-dev",
     write_local: bool = False,
     overwrite_existing: bool = True,
@@ -160,32 +156,41 @@ def ingest_titled_players_stats(
     and writes these profiles to files in GCS bucket and optionally locally.
     """
     # Get cleaned DataFrames of titled players Chess.com game statistics
-    stats: Dict[str, pl.DataFrame] = get_titled_player_stats(title_abbrvs)
+    stats: Dict[str, pl.DataFrame] = get_titled_player_stats(title_abbrv)
 
     for game_format, game_stats in stats.items():
         # Generate out file path
-        out_file_path: Path = generate_file_path(game_format)
+        out_file_path: Path = generate_file_path(title_abbrv, game_format)
 
         # Write to local file
         if write_local:
-            logging.info("Writing game statistics data to local file...")
+            print("Writing game statistics data to local file...")
             write_to_local(game_stats, out_file_path)
-            logging.info("Done.")
+            print("Done.")
 
         # Write to file in GCS bucket
-        if overwrite_existing or not check_if_file_exists_in_gcs(out_file_path):
-            logging.info("Writing game statistics data to GCS bucket...")
-            write_to_gcs(game_stats, out_file_path, gcs_bucket_block_name)
-            logging.info("Done.")
+        # if overwrite_existing or not check_if_file_exists_in_gcs(out_file_path):
+        #     print("Writing game statistics data to GCS bucket...")
+        #     write_to_gcs(game_stats, out_file_path, gcs_bucket_block_name)
+        #     print("Done.")
 
     return stats
 
 
 @flow(log_prints=True)
 def ingest_cdc_player_stats_web_to_gcs(
-    title_abbrvs: List[
-        Literal["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"]
-    ] = ["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"],
+    title_abbrvs: List[ChessTitle] | ChessTitle = [
+        "GM",
+        "WGM",
+        "IM",
+        "WIM",
+        "FM",
+        "WFM",
+        "NM",
+        "WNM",
+        "CM",
+        "WCM",
+    ],
     gcs_bucket_block_name: str = "chess-ratings-dev",
     write_local: bool = False,
     overwrite_existing: bool = True,
@@ -195,7 +200,8 @@ def ingest_cdc_player_stats_web_to_gcs(
     using the public Chess.com API and writes these statistics to files in GCS bucket and
     optionally locally.
     """
-    # Ingest titled player profiles for each title specified
+    if not isinstance(title_abbrvs, list):
+        title_abbrvs = [title_abbrvs]
     for title_abbrv in title_abbrvs:
         ingest_titled_players_stats(
             title_abbrv, gcs_bucket_block_name, write_local, overwrite_existing
@@ -203,4 +209,4 @@ def ingest_cdc_player_stats_web_to_gcs(
 
 
 if __name__ == "__main__":
-    ingest_cdc_player_stats_web_to_gcs()
+    ingest_cdc_player_stats_web_to_gcs("WGM", write_local=True)
