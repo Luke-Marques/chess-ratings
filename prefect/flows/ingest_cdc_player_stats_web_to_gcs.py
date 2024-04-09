@@ -169,10 +169,10 @@ def ingest_titled_players_stats(
             print("Done.")
 
         # Write to file in GCS bucket
-        # if overwrite_existing or not check_if_file_exists_in_gcs(out_file_path):
-        #     print("Writing game statistics data to GCS bucket...")
-        #     write_to_gcs(game_stats, out_file_path, gcs_bucket_block_name)
-        #     print("Done.")
+        if overwrite_existing or not check_if_file_exists_in_gcs(out_file_path):
+            print("Writing game statistics data to GCS bucket...")
+            write_to_gcs(game_stats, out_file_path, gcs_bucket_block_name)
+            print("Done.")
 
     return stats
 
