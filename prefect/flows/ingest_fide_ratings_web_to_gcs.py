@@ -128,7 +128,7 @@ def validate_ratings_data(df: pl.DataFrame) -> None:
     ChessRating.validate(df)
 
 
-@flow()
+@flow(log_prints=True, cache_result_in_memory=False, persist_result=False)
 def ingest_single_month_fide_ratings_web_to_gcs(
     year: int,
     month: int,
