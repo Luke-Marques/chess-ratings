@@ -16,6 +16,17 @@ def get_titled_usernames(
         "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
     ],
 ) -> List[str]:
+    """
+    Retrieves usernames of titled players from Chess.com API.
+
+    Args:
+        title_abbrv (Literal["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"]):
+            The abbreviation of the chess title to filter the players by.
+
+    Returns:
+        List[str]: A list of usernames of titled players.
+
+    """
     # Retrieve usernames from Chess.com API
     print(f"Fetching {title_abbrv} titled players' usernames...")
     usernames: List[str] = ChessAPI().get_titled_players_usernames(title_abbrv)[
@@ -35,6 +46,18 @@ def get_all_game_formats_stats(
         "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
     ],
 ) -> List[Dict]:
+    """
+    Fetches Chess.com player game statistics for each player of a given chess title.
+
+    Args:
+        usernames (List[str]): A list of usernames for the titled players.
+        title_abbrv (Literal):
+            The abbreviation of the chess title to filter the players by.
+
+    Returns:
+        List[Dict]:
+            A list of dictionaries containing the game statistics for each player.
+    """
     print(f"Fetching player game statistics for each {title_abbrv} titled player...")
     all_game_formats_stats = []
     for index, username in enumerate(usernames):
@@ -51,6 +74,20 @@ def get_all_game_formats_stats(
 def convert_json_stats_to_dataframes(
     all_game_formats_stats: List[Dict],
 ) -> pl.DataFrame:
+    """
+    Converts a list of dictionaries containing JSON Chess.com player game statistics
+    into a single Polars DataFrame, via Pandas (for it's ability to normalise JSON
+    structures).
+
+    Args:
+        all_game_formats_stats (List[Dict]):
+            A list of dictionaries containing JSON Chess.com player game statistics.
+
+    Returns:
+        pl.DataFrame:
+            A Polars DataFrame containing the converted JSON Chess.com player game
+            statistics.
+    """
     all_game_formats_stats: pl.DataFrame = pl.from_pandas(
         pd.json_normalize(all_game_formats_stats)
     )
@@ -61,6 +98,21 @@ def convert_json_stats_to_dataframes(
 def seperate_game_formats(
     all_game_formats_stats: pl.DataFrame,
 ) -> Dict[str, pl.DataFrame]:
+    """
+    Separates the input DataFrame containing Chess.com player game statistics for all
+    game-formats into per-game-format DataFrames and stores them in a dictionary.
+
+    Args:
+        all_game_formats_stats (pl.DataFrame):
+            The input DataFrame containing Chess.com player game statistics for all
+            game-formats.
+
+    Returns:
+        Dict[str, pl.DataFrame]:
+            A dictionary where the keys are Chess.com game-formats and the values are
+            the corresponding DataFrames which contain Chess.com players' game
+            statistics for that game-format.
+    """
     # Get list of game formats present in DataFrame
     game_formats: List[str] = set(
         [
@@ -82,6 +134,19 @@ def seperate_game_formats(
 
 @task
 def clean_stats_dataframe(stats: pl.DataFrame) -> pl.DataFrame:
+    """
+    Cleans the input DataFrame by renaming columns and converting date columns to the
+    Polars date data type. Also adds a column containing the todays date to show the
+    date the data was scraped.
+
+    Args:
+        stats (pl.DataFrame):
+            The input DataFrame containing Chess.com players' game statistics.
+
+    Returns:
+        pl.DataFrame:
+            The cleaned DataFrame with renamed columns and converted date columns.
+    """
     stats = stats.rename(
         lambda col: col
         if len(col.split(".")) == 1
@@ -100,8 +165,20 @@ def get_titled_player_stats(
     ],
 ) -> Dict[str, pl.DataFrame]:
     """
-    Function which uses the public Chess.com API to return the game statistics of all
-    titled players of a given title.
+    Prefect sub-flow which retrieves Chess.com players' game statistics for titled players based on the given
+    title abbreviation.
+
+    Args:
+        title_abbrv (Literal["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"]):
+            The abbreviation of the chess title for which to retrieve Chess.com players'
+            game statistics.
+
+    Returns:
+        Dict[str, pl.DataFrame]:
+            A dictionary containing the Chess.com players' game statistics for each
+            game-format, where the keys are the game-format names and the values are the
+            corresponding Polars DataFrames of game statistics.
+
     """
     # Get usernames of titled players for title abbreviation
     usernames: List[str] = get_titled_usernames(title_abbrv)
@@ -136,13 +213,24 @@ def generate_file_path(
     extension: str = "parquet",
 ) -> Path:
     """
-    Generate a full file path for the storage of player game statistics data locally or
-    in GCS.
+    Generate a file path for Chess.com players' game statistics data.
+
+    Args:
+        title_abbrv (Literal["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"]):
+            The abbreviation of the player's title.
+        game_format (str): The Chess.com game-format name.
+        scrape_date (datetime, optional):
+            The date the data was scraped. Defaults to today's date.
+        extension (str, optional): The file extension. Defaults to "parquet".
+
+    Returns:
+        Path: The file path for the player game stats file.
     """
+
     # Generate filename
     file_name: Path = Path(
         f"{title_abbrv.lower()}_{game_format}_stats_"
-        f"{str(scrape_date.date()).replace("-", "_")}.{extension}"
+        f"{str(scrape_date.date()).replace('-', '_')}.{extension}"
     )
 
     # Generate filepath
@@ -163,8 +251,28 @@ def ingest_titled_players_stats(
     overwrite_existing: bool = True,
 ) -> pl.DataFrame:
     """
-    Sub-flow that retrieves titled player game statistics using the public Chess.com API
-    and writes these profiles to files in GCS bucket and optionally locally.
+    Prefect sub-flow which ingests Chess.com players' game statistics for titled players
+    from the Chess.com API, and cleans and writes the data, in a columnar format, to
+    parquet files in a GCS bucket and/or locally.
+
+    Args:
+        title_abbrv (Literal["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"]):
+            The abbreviation of the title of the players whose statistics will be
+            ingested.
+        gcs_bucket_block_name (str, optional):
+            The name of the GCS bucket where the data will be written. Defaults to
+            "chess-ratings-dev".
+        write_local (bool, optional):
+            Whether to write the data to a local file. Defaults to False.
+        overwrite_existing (bool, optional):
+            Whether to overwrite existing files in the GCS bucket. Defaults to True.
+
+    Returns:
+        Dict[str, pl.DataFrame]:
+            A dictionary containing cleaned DataFrames of titled players' Chess.com game
+            statistics. The keys of the dictionary are the game formats, and the values
+            are the corresponding DataFrames containing Chess.com players' game
+            statistics.
     """
     # Get cleaned DataFrames of titled players Chess.com game statistics
     stats: Dict[str, pl.DataFrame] = get_titled_player_stats(title_abbrv)
@@ -210,9 +318,26 @@ def ingest_cdc_player_stats_web_to_gcs(
     overwrite_existing: bool = True,
 ) -> None:
     """
-    Parent-flow that retrieves titled player game statistics across a range of titles
-    using the public Chess.com API and writes these statistics to files in GCS bucket and
-    optionally locally.
+    Ingests Chess.com players' game statistics for titled players across a range of 
+    chess titles from the Chess.com API, converts the data from JSON to Polars 
+    DataFrames, cleans the DataFrames, and writes the data in columnar format to parqeut 
+    files in a GCS bucket and/or locally.
+
+    Args:
+        title_abbrvs (List[Literal["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"]] or Literal["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"], optional):
+            A list of title abbreviations or a single title abbreviation to ingest 
+            Chess.com player game statistics for. Defaults to all Chess.com titles 
+            ["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"].
+        gcs_bucket_block_name (str, optional):
+            The name of the GCS bucket Prefect block. Defaults to "chess-ratings-dev".
+        write_local (bool, optional):
+            Whether to write the player statistics locally. Defaults to False.
+        overwrite_existing (bool, optional):
+            Whether to overwrite existing player statistics in the GCS bucket. Defaults 
+            to True.
+
+    Returns:
+        None
     """
     if not isinstance(title_abbrvs, list):
         title_abbrvs = [title_abbrvs]
