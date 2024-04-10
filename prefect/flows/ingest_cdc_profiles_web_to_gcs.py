@@ -1,9 +1,9 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Literal
 
 import polars as pl
-from utils.chess_dot_com_api import ChessTitle, ChessAPI
+from utils.chess_dot_com_api import ChessAPI
 from utils.write_data import check_if_file_exists_in_gcs, write_to_gcs, write_to_local
 
 from prefect import flow, task
@@ -11,7 +11,9 @@ from prefect import flow, task
 
 @task(retries=3, log_prints=True)
 def get_titled_usernames(
-    title_abbrv: ChessTitle,
+    title_abbrv: Literal[
+    "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
+],
 ) -> List[str]:
     # Retrieve usernames from Chess.com API
     print(f"Fetching {title_abbrv} titled players' usernames...")
@@ -97,7 +99,9 @@ def clean_player_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
 
 @flow(log_prints=True)
 def get_titled_players_profiles(
-    title_abbrv: ChessTitle,
+    title_abbrv: Literal[
+    "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
+],
 ) -> pl.DataFrame:
     """
     Function which uses the public Chess.com API to retrieve profile details of titled
@@ -122,7 +126,9 @@ def get_titled_players_profiles(
 
 @task
 def generate_file_path(
-    title_abbrv: ChessTitle,
+    title_abbrv: Literal[
+    "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
+],
     scrape_date: datetime = datetime.today(),
     extension: str = "parquet",
 ) -> Path:
@@ -149,7 +155,9 @@ def generate_file_path(
 
 @flow(log_prints=True, cache_result_in_memory=False, persist_result=False)
 def ingest_titled_players_profiles(
-    title_abbrv: ChessTitle,
+    title_abbrv: Literal[
+    "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
+],
     gcs_bucket_block_name: str = "chess-ratings-dev",
     write_local: bool = False,
     overwrite_existing: bool = True,
@@ -179,9 +187,13 @@ def ingest_titled_players_profiles(
     return profiles
 
 
-@flow(validate_parameters=False)
+@flow
 def ingest_cdc_profiles_web_to_gcs(
-    title_abbrvs: List[ChessTitle] | ChessTitle = [
+    title_abbrvs: List[Literal[
+    "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
+]] | Literal[
+    "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"
+] = [
         "GM",
         "WGM",
         "IM",
