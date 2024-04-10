@@ -247,13 +247,13 @@ def ingest_titled_players_profiles(
     # Write to local file
     if write_local:
         print("Writing profile data to local file...")
-        write_to_local(profiles, out_file_path)
+        write_to_local(profiles, out_file_path, return_state=False)
         print("Done.")
 
     # Write to file in GCS bucket
     if overwrite_existing or not check_if_file_exists_in_gcs(out_file_path):
         print("Writing profile data to GCS bucket...")
-        write_to_gcs(profiles, out_file_path, gcs_bucket_block_name)
+        write_to_gcs(profiles, out_file_path, gcs_bucket_block_name, return_state=False)
         print("Done.")
 
     return profiles

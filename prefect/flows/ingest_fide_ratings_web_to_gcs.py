@@ -169,10 +169,10 @@ def ingest_single_month_fide_ratings_web_to_gcs(
 
     # write cleaned ratings dataset to local parquet file
     if store_local:
-        write_to_local(df, out_path)
+        write_to_local(df, out_path, return_state=True)
 
     # write cleaned ratings dataset to gcs bucket
-    write_to_gcs(df, out_path, gcs_bucket_block_name)
+    write_to_gcs(df, out_path, gcs_bucket_block_name, return_state=True)
 
     return df
 

@@ -6,7 +6,7 @@ from prefect import task
 from prefect_gcp import GcsBucket
 
 
-@task(log_prints=True)
+@task(log_prints=True, cache_result_in_memory=False, persist_result=False)
 def write_to_local(df: pl.DataFrame, out_path: Path) -> Path:
     """Write Polars DataFrame to local file."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -14,7 +14,7 @@ def write_to_local(df: pl.DataFrame, out_path: Path) -> Path:
     return out_path
 
 
-@task(log_prints=True, retries=3)
+@task(log_prints=True, retries=3, cache_result_in_memory=False, persist_result=False)
 def write_to_gcs(
     df: pl.DataFrame, out_path: Path, gcs_bucket_block_name: str = "chess-ratings-dev"
 ) -> Path:
