@@ -2,7 +2,18 @@ from datetime import date
 
 
 def convert_numeric_month_to_string(month: int) -> str:
-    """Convert a numeric month (e.g. integer between 1-12 inclusive) to a 3 character code."""
+    """
+    Converts a numeric month to its corresponding 3-character string representation.
+
+    Args:
+        month (int): The numeric representation of the month (1-12).
+
+    Returns:
+        str: The string representation of the month.
+
+    Raises:
+        ValueError: If month integer value is not valid.
+    """
     check_valid_month(month)
     months = [
         "jan",
@@ -22,20 +33,46 @@ def convert_numeric_month_to_string(month: int) -> str:
 
 
 def check_valid_year(year: int) -> None:
-    min_year, max_year = 2015, date.today().year
+    """
+    Checks if the given year is valid for the purposes of FIDE chess ratings data
+    extraction.
+
+    Args:
+        year (int): The year to be checked.
+
+    Raises:
+        ValueError: If the year is not a valid integer year value between 2015 and the
+        current year inclusive.
+
+    Returns:
+        None
+    """
+    MIN_YEAR, MAX_YEAR = 2015, date.today().year
     error_message = (
         "Year value is not valid. Please enter an integer year value between "
-        f"{min_year} and {max_year}, inclusive. You entered {year =}."
+        f"{MIN_YEAR} and {MAX_YEAR}, inclusive. You entered {year =}."
     )
-    if (year < min_year) or (year > max_year) or not isinstance(year, int):
+    if (year < MIN_YEAR) or (year > MAX_YEAR) or not isinstance(year, int):
         raise ValueError(error_message)
 
 
 def check_valid_month(month: int) -> None:
-    min_month, max_month = 1, 12
+    """
+    Check if the given month value is valid.
+
+    Args:
+        month (int): The month value to be checked.
+
+    Raises:
+        ValueError: If the month value is not a valid integer between 1 and 12 inclusive.
+
+    Returns:
+        None
+    """
+    MIN_MONTH, MAX_MONTH = 1, 12
     error_message = (
         "Month value is not valid. Please enter an integer month value between "
-        f"{min_month} and {max_month}, inclusive. You entered {month =}."
+        f"{MIN_MONTH} and {MAX_MONTH}, inclusive. You entered {month =}."
     )
-    if (month < min_month) or (month > max_month) or not isinstance(month, int):
+    if (month < MIN_MONTH) or (month > MAX_MONTH) or not isinstance(month, int):
         raise ValueError(error_message)
