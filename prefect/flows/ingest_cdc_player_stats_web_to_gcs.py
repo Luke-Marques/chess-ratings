@@ -213,4 +213,4 @@ def ingest_cdc_player_stats_web_to_gcs(
 
 
 if __name__ == "__main__":
-    ingest_cdc_player_stats_web_to_gcs("WGM", write_local=True)
+    ingest_cdc_player_stats_web_to_gcs()

@@ -215,4 +215,4 @@ def ingest_cdc_profiles_web_to_gcs(
 
 
 if __name__ == "__main__":
-    ingest_cdc_profiles_web_to_gcs(["WGM", "WIM"], write_local=True)
+    ingest_cdc_profiles_web_to_gcs()
