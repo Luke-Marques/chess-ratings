@@ -87,7 +87,6 @@ def clean_player_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
     - Renames specific columns
     - Adds a column with the current date and time
     - Removes duplicate rows
-    - Selects specific columns
     - Collects the cleaned dataframe
 
     Args:
@@ -110,26 +109,6 @@ def clean_player_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
         # Add column of todays date/time
         .with_columns(pl.lit(datetime.now()).alias("scrape_datetime"))
         .unique()
-        .select(
-            "player_id",
-            "username",
-            "name",
-            "title",
-            "profile_url",
-            "avatar_url",
-            "api_url",
-            "follower_count",
-            "country",
-            "location",
-            "last_online",
-            "joined",
-            "status",
-            "is_streamer",
-            "twitch_url",
-            "verified",
-            "league",
-            "scrape_datetime",
-        )
         .collect()
     )
     print("Done.")
