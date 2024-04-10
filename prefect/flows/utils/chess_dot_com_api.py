@@ -9,12 +9,31 @@ type ChessTitle = Literal[
 
 
 class ChessAPI:
+    """
+    A class that interacts with the public Chess.com API to retrieve information about 
+    chess players.
+    """
+
     def __init__(self, headers: Dict[str, str] = {"User-Agent": "default@domain.com"}):
         self.api_endpoint_prefix: str = "https://api.chess.com/pub/"
         self.headers = headers
 
     @staticmethod
     def _check_title_abbrv(title_abbrv: str) -> None:
+        """
+        Checks if the given title abbreviation is valid.
+
+        Args:
+            title_abbrv (str): The title abbreviation to check.
+
+        Raises:
+            ValueError: If the title abbreviation is not valid - does not appear in the 
+            following list "GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", 
+            "WCM".
+
+        Returns:
+            None
+        """
         allowed_title_abbrvs = [
             "GM",
             "WGM",
@@ -32,7 +51,19 @@ class ChessAPI:
             raise ValueError(error_message)
 
     def _request(self, api_endpoint_suffix: str) -> Dict:
-        """Function which queries the public Chess.com API and returns the JSON response."""
+        """
+        Queries the public Chess.com API for a given API url endpoint suffix and returns 
+        the JSON response as a dictionary object.
+
+        Args:
+            api_endpoint_suffix (str): The suffix of the desired API endpoint URL.
+
+        Returns:
+            dict: The JSON response from the API.
+
+        Raises:
+            ValueError: If the API response is empty.
+        """
         api_endpoint_url = self.api_endpoint_prefix + api_endpoint_suffix
         response = requests.get(api_endpoint_url, headers=self.headers)
         # Check for empty response body
@@ -48,8 +79,20 @@ class ChessAPI:
         title_abbrvs: List[ChessTitle] | ChessTitle,
     ) -> Dict[str, List[str]]:
         """
-        Function which uses the public Chess.com API to return a list of Chess.com usernames
-        of players with a given title.
+        Queries the public Chess.com API to retrieve a list of Chess.com usernames of 
+        Chess.com players with a given chess title.
+
+        Args:
+            title_abbrvs (List[ChessTitle] | ChessTitle): 
+                The title abbreviation(s) to filter the players.
+
+        Returns:
+            dict: 
+                A dictionary where the keys are the title abbreviations and the values 
+                are lists of Chess.com player usernames.
+
+        Raises:
+            ValueError: If the title abbreviation is not valid.
         """
         if not isinstance(title_abbrvs, List):
             title_abbrvs = [title_abbrvs]
@@ -63,8 +106,17 @@ class ChessAPI:
 
     def get_player_id(self, username: str) -> int:
         """
-        Function which uses the public Chess.com API to retrieve the non-changing, Chess.com
-        player ID for a given player username.
+        Queries the public Chess.com API to retrieve the non-changing, Chess.com player 
+        ID for a given player's username.
+
+        Args:
+            username (str): The Chess.com player's username.
+
+        Returns:
+            int: The Chess.com player's player ID.
+
+        Raises:
+            ValueError: If the API response is empty.
         """
         api_endpoint_suffix = f"player/{username}"
         response: Dict = self._request(api_endpoint_suffix)
@@ -73,8 +125,17 @@ class ChessAPI:
 
     def get_player_profile(self, username: str) -> Dict:
         """
-        Function which uses the public Chess.com API to return the profile details of a
-        given player.
+        Queries the public Chess.com API to retrieve a Chess.com player's profile details 
+        for a given Chess.com player's username.
+
+        Args:
+            username (str): The username of the Chess.com player.
+
+        Returns:
+            dict: The profile details of the Chess.com player.
+
+        Raises:
+            ValueError: If the API response is empty.
         """
         api_endpoint_suffix = f"player/{username}"
         response: Dict = self._request(api_endpoint_suffix)
@@ -82,8 +143,17 @@ class ChessAPI:
 
     def get_player_stats(self, username: str) -> Dict:
         """
-        Function which uses the public Chess.com API to return the game statistics of a
-        given player.
+        Queries the public Chess.com API to retrieve a Chess.com player's game 
+        statistics for a given Chess.com player's username.
+
+        Args:
+            username (str): The username of the Chess.com player.
+
+        Returns:
+            dict: The game statistics of the Chess.com player.
+
+        Raises:
+            ValueError: If the API response is empty.
         """
         api_endpoint_suffix = f"player/{username}/stats"
         response: Dict = self._request(api_endpoint_suffix)
