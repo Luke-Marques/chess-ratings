@@ -177,7 +177,7 @@ def ingest_titled_players_stats(
     return stats
 
 
-@flow(log_prints=True)
+@flow(log_prints=True, validate_parameters=False)
 def ingest_cdc_player_stats_web_to_gcs(
     title_abbrvs: List[ChessTitle] | ChessTitle = [
         "GM",

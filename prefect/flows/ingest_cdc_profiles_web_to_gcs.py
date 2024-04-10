@@ -179,7 +179,7 @@ def ingest_titled_players_profiles(
     return profiles
 
 
-@flow
+@flow(validate_parameters=False)
 def ingest_cdc_profiles_web_to_gcs(
     title_abbrvs: List[ChessTitle] | ChessTitle = [
         "GM",
