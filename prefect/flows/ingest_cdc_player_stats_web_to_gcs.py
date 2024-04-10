@@ -249,7 +249,7 @@ def ingest_titled_players_stats(
     gcs_bucket_block_name: str = "chess-ratings-dev",
     write_local: bool = False,
     overwrite_existing: bool = True,
-) -> pl.DataFrame:
+) -> Dict[str, pl.DataFrame]:
     """
     Prefect sub-flow which ingests Chess.com players' game statistics for titled players
     from the Chess.com API, and cleans and writes the data, in a columnar format, to
@@ -318,22 +318,22 @@ def ingest_cdc_player_stats_web_to_gcs(
     overwrite_existing: bool = True,
 ) -> None:
     """
-    Ingests Chess.com players' game statistics for titled players across a range of 
-    chess titles from the Chess.com API, converts the data from JSON to Polars 
-    DataFrames, cleans the DataFrames, and writes the data in columnar format to parqeut 
+    Ingests Chess.com players' game statistics for titled players across a range of
+    chess titles from the Chess.com API, converts the data from JSON to Polars
+    DataFrames, cleans the DataFrames, and writes the data in columnar format to parqeut
     files in a GCS bucket and/or locally.
 
     Args:
         title_abbrvs (List[Literal["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"]] or Literal["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"], optional):
-            A list of title abbreviations or a single title abbreviation to ingest 
-            Chess.com player game statistics for. Defaults to all Chess.com titles 
+            A list of title abbreviations or a single title abbreviation to ingest
+            Chess.com player game statistics for. Defaults to all Chess.com titles
             ["GM", "WGM", "IM", "WIM", "FM", "WFM", "NM", "WNM", "CM", "WCM"].
         gcs_bucket_block_name (str, optional):
             The name of the GCS bucket Prefect block. Defaults to "chess-ratings-dev".
         write_local (bool, optional):
             Whether to write the player statistics locally. Defaults to False.
         overwrite_existing (bool, optional):
-            Whether to overwrite existing player statistics in the GCS bucket. Defaults 
+            Whether to overwrite existing player statistics in the GCS bucket. Defaults
             to True.
 
     Returns:
