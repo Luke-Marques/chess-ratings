@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 from google.cloud.bigquery import CreateDisposition, SourceFormat, WriteDisposition
 from prefect_gcp.bigquery import bigquery_load_cloud_storage
@@ -91,10 +91,10 @@ def load_file_gcs_to_bq(
 def load_files_gcs_to_bq(
     *gcs_files: Path | Iterable[Path],
     table_name: str,
-    gcp_credentials_block_name: str = "gcp-creds-chess-ratings",
-    gcs_credentials_block_name: str = "chess-ratings-dev",
-    dataset: str = "landing",
-    location: str = "europe_north1",
+    gcp_credentials_block: GcpCredentials,
+    gcs_bucket_block: GcsBucket,
+    dataset: str,
+    location: Optional[str] = "europe_north1",
 ) -> None:
     # Create Prefect info logger
     logger = get_run_logger()
@@ -113,30 +113,24 @@ def load_files_gcs_to_bq(
         gcs_files (List[Path]):
     {prettify_list(gcs_files, initial_indent=8, indent_size=4)}
         table_name (str): {table_name}
-        gcp_credentials_block_name (str): {gcp_credentials_block_name}
-        gcs_credentials_block_name (str): {gcs_credentials_block_name}
+        gcp_credentials_block (GcpCredentials): {gcp_credentials_block}
+        gcs_bucket_block (GcsBucket): {gcs_bucket_block}
         dataset (str): {dataset}
         location (str): {location}"""
     print(start_message)
     logger.info(start_message)
-
-    # Load GCP credentials Prefect block
-    gcp_credentials = GcpCredentials.load(gcs_credentials_block_name)
-
-    # Load GCS bucket Prefect block
-    gcs_bucket_block = GcsBucket.load(gcs_credentials_block_name)
 
     # Load each file to BigQuery table
     logger.info(f"Loading {len(gcs_files)} files to BQ Warehouse...")
     for index, gcs_file in enumerate(gcs_files):
         logger.info(f"Loading {gcs_file} ({index}/{len(gcs_files)}) to BQ Warehouse...")
         load_file_gcs_to_bq(
-            gcs_file=gcs_file,
-            gcp_credentials_block=gcp_credentials,
-            gcs_bucket_block=gcs_bucket_block,
-            table_name=table_name,
-            dataset=dataset,
-            location=location,
+            gcs_file,
+            gcp_credentials_block,
+            gcs_bucket_block,
+            dataset,
+            table_name,
+            location,
         )
         logger.info(f"Finished loading {gcs_file} to BQ Warehouse.")
 

@@ -111,6 +111,7 @@ def load_single_cdc_game_format_stats(
     load_file_gcs_to_bq(
         gcs_file=destination,
         gcp_credentials_block=gcp_credentials_block,
+        gcs_bucket_block=gcs_bucket_block,
         dataset=bq_dataset_name,
         table_name=bq_table_name,
     )
