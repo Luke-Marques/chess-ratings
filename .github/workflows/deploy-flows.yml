@@ -9,7 +9,7 @@ on:
     paths:
       - ".github/workflows/deploy-flows.yml"
       - ".github/actions/deploy-flows/**"
-      - 'prefect/flows/**'
+      - 'chess_ratings_pipeline/flows/**'
   push:
     branches:
       - main
@@ -17,7 +17,7 @@ on:
     paths:
       - ".github/workflows/deploy-flows.yml"
       - ".github/actions/deploy-flows/**"
-      - 'prefect/flows/**'
+      - 'chess_ratings_pipeline/flows/**'
 
 jobs:
   list-flows:

@@ -36,7 +36,6 @@ cloud_run_job_block = CloudRunJob(
     region=args.region,
     credentials=gcp_credentials,
     cpu=2,
-    timeout=3600,
     memory=8,
     memory_unit="Gi",
 )
