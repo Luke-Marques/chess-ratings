@@ -35,7 +35,7 @@ def prettify_list(list: list, indent_size=4, initial_indent=0, seperator=",") ->
     return prettified_list
 
 
-@task(log_prints=True, retries=3)
+@flow(log_prints=True, retries=3)
 def load_file_gcs_to_bq(
     gcs_file: Path,
     gcp_credentials_block: GcpCredentials,
@@ -49,7 +49,7 @@ def load_file_gcs_to_bq(
 
     # Log flow start message
     start_time = datetime.now()
-    start_message = f"""Starting `load_file_from_gcs_to_bigquery` task at {start_time} (local time).
+    start_message = f"""Starting `load_file_from_gcs_to_bigquery` flow at {start_time} (local time).
     Inputs:
         gcs_file (Path): {gcs_file}
         gcp_credentials_block (GcpCredentials): {gcp_credentials_block}
@@ -82,7 +82,7 @@ def load_file_gcs_to_bq(
     # Log flow end message
     end_time = datetime.now()
     time_taken: timedelta = end_time - start_time
-    end_message = f"""Finished `load_file_from_gcs_to_bigquery` task at {end_time} (local time).
+    end_message = f"""Finished `load_file_from_gcs_to_bigquery` flow at {end_time} (local time).
         Time taken: {time_taken}"""
     logger.info(end_message)
 
