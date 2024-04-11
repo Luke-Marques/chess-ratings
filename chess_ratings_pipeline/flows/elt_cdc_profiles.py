@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Literal
 
 import polars as pl
@@ -27,8 +27,8 @@ def elt_single_title_cdc_profiles(
     gcs_bucket_block: GcsBucket,
     store_local: bool,
     overwrite_existing: bool,
-    bq_dataset_name: str = "landing",
-    bq_table_name: str = "cdc_profiles",
+    bq_dataset_name: str,
+    bq_table_name: str,
 ) -> None:
     """
     Extracts Chess.com player profiles for the specified ChessTitle, cleans and
@@ -47,9 +47,9 @@ def elt_single_title_cdc_profiles(
         overwrite_existing (bool):
             Flag indicating whether to overwrite existing data.
         bq_dataset_name (str, optional):
-            The name of the BigQuery dataset. Defaults to "landing".
+            The name of the BigQuery dataset.
         bq_table_name (str, optional):
-            The name of the BigQuery table. Defaults to "cdc_profiles".
+            The name of the BigQuery table.
 
     Returns:
         None
@@ -133,7 +133,7 @@ def elt_single_title_cdc_profiles(
 
     # Log flow end message
     end_time = datetime.now()
-    time_taken = end_time - start_time
+    time_taken: timedelta = end_time - start_time
     end_message = f"""Finished `elt_single_title_cdc_profiles` sub-flow at {end_time} (local time).
     Time taken: {time_taken}."""
     logger.info(end_message)
@@ -146,6 +146,8 @@ def elt_cdc_profiles(
     gcs_bucket_block_name: str = "chess-ratings-dev",
     store_local: bool = False,
     overwrite_existing: bool = True,
+    bq_dataset_name: str = "landing",
+    bq_table_name: str = "cdc_profiles",
 ) -> None:
     """
     Extract, load, and transform Chess.com player profiles for the specified chess
@@ -163,6 +165,8 @@ def elt_cdc_profiles(
             Flag indicating whether to store the data locally. Defaults to False.
         overwrite_existing (bool, optional):
             Flag indicating whether to overwrite existing data. Defaults to True.
+        bq_dataset_name (str, optional):
+            The name of the BigQuery dataset. Defaults to "landing".
 
     Returns:
         None
@@ -221,6 +225,8 @@ def elt_cdc_profiles(
             gcs_bucket_block,
             store_local,
             overwrite_existing,
+            bq_dataset_name,
+            bq_table_name,
         )
         logger.info(
             f"Finished Chess.com player profiles ELT sub-flow for Chess.com players "
@@ -229,7 +235,7 @@ def elt_cdc_profiles(
 
     # Log flow end message
     end_time = datetime.now()
-    time_taken = end_time - start_time
+    time_taken: timedelta = end_time - start_time
     end_message = f"""Finished `elt_cdc_profiles` flow at {end_time} (local time).
     Time taken: {time_taken}."""
     logger.info(end_message)
