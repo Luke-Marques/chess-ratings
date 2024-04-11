@@ -124,7 +124,7 @@ def check_if_file_exists_in_gcs(file_path: Path, gcs_bucket_block: GcsBucket) ->
 def write_dataframe_to_gcs(
     df: pd.DataFrame | pl.DataFrame,
     destination: Path,
-    gcs_bucket_block_name: str,
+    gcs_bucket_block: GcsBucket,
     overwrite_existing: bool = True,
 ) -> Path | None:
     """
@@ -153,12 +153,9 @@ def write_dataframe_to_gcs(
         Inputs:
             df (pd.DataFrame | pl.DataFrame): \n\t{df}
             destination (Path): {destination}
-            gcs_bucket_block_name (str): {gcs_bucket_block_name}
+            gcs_bucket_block (GcsBucket): {gcs_bucket_block}
             overwrite_existing (bool): {overwrite_existing}"""
     logger.info(start_message)
-
-    # Load GCS bucket block
-    gcs_bucket_block = GcsBucket.load(gcs_bucket_block_name)
 
     if not overwrite_existing:
         # Check if file exists in GCS bucket
@@ -168,7 +165,8 @@ def write_dataframe_to_gcs(
         # If file exists display message and return None
         if file_exists:
             logger.info(
-                f"File {destination} already exists in GCS bucket {gcs_bucket_block_name} and `overwrite_existing=False`. Skipping."
+                f"File {destination} already exists in GCS bucket and "
+                f"{overwrite_existing=}. Skipping."
             )
             return None
 
