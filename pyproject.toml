@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "prefect-gcp-template"
+name = "chess_ratings_pipeline"
 version = "0.1.0"
 description = ""
 authors = ["Luke Marques <74625391+Luke-Marques@users.noreply.github.com>"]
