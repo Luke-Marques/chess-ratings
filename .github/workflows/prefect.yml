@@ -5,12 +5,12 @@ on:
       region:
         description: GCP region
         required: true
-        default: 'europe-north1'
+        default: 'europe-west1'
         type: string
       zone:
         description: Zone in the selected GCP region
         required: true
-        default: 'europe-north1-b'
+        default: 'europe-west1-b'
         type: string
       artifact_repository:
         description: Artifact Registry Repository

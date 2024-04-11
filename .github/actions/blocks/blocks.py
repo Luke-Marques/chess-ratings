@@ -20,7 +20,7 @@ parser.add_argument("-n", "--block-name", default="default")
 parser.add_argument("-g", "--gcp-creds-block-name", default="default")
 parser.add_argument("-p", "--bucket-name", default="default")
 parser.add_argument("-i", "--image")
-parser.add_argument("--region", default="europe-north1")
+parser.add_argument("--region", default="europe-west1")
 args = parser.parse_args()
 
 # load GCP credentials block
