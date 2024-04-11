@@ -4,6 +4,11 @@ from pathlib import Path
 from typing import List, Tuple
 
 import polars as pl
+from prefect import flow
+from prefect.logging import get_run_logger
+from prefect_gcp import GcpCredentials
+from prefect_gcp.cloud_storage import GcsBucket
+
 from chess_ratings_pipeline.core.integrations.fide import (
     FideGameFormat,
     check_valid_month,
@@ -20,11 +25,6 @@ from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
     write_dataframe_to_gcs,
     write_dataframe_to_local,
 )
-from prefect_gcp import GcpCredentials
-from prefect_gcp.cloud_storage import GcsBucket
-
-from prefect import flow
-from prefect.logging import get_run_logger
 
 
 @flow(log_prints=True)
