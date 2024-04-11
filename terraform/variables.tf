@@ -33,5 +33,5 @@ variable "BQ_DATASET" {
 variable "TABLE_NAME" {
   description = "BigQuery Table that raw data (from GCS) will be written to"
   type        = string
-  default     = "chess_ratings_table"
+  default     = "landing"
 }
