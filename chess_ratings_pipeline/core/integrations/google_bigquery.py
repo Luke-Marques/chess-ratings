@@ -7,7 +7,7 @@ from prefect_gcp.bigquery import bigquery_load_cloud_storage
 from prefect_gcp.cloud_storage import GcsBucket
 from prefect_gcp.credentials import GcpCredentials
 
-from prefect import flow, get_run_logger, task
+from prefect import flow, get_run_logger
 
 
 def prettify_list(list: list, indent_size=4, initial_indent=0, seperator=",") -> str:
