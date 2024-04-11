@@ -42,7 +42,7 @@ def load_file_gcs_to_bq(
     gcs_bucket_block: GcsBucket,
     dataset: str,
     table_name: str,
-    location: str,
+    location: Optional[str] = "europe_north1",
 ) -> None:
     # Create Prefect info logger
     logger = get_run_logger()
