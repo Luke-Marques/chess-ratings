@@ -242,7 +242,9 @@ def generate_fide_download_url(
 
 
 @task(log_prints=True)
-def generate_file_path(year: int, month: int, game_format: FideGameFormat) -> Path:
+def generate_file_path(
+    year: int, month: int, game_format: FideGameFormat, extension: str = "parquet"
+) -> Path:
     """
     Generate a file path for FIDE chess ratings based on the given year, month, and FIDE
     game-format.
@@ -251,6 +253,7 @@ def generate_file_path(year: int, month: int, game_format: FideGameFormat) -> Pa
         year (int): The year of the ratings.
         month (int): The month of the ratings.
         game_format (FideGameFormat): The FIDE game-format.
+        extension (str, optional): The file extension. Defaults to "parquet".
 
     Returns:
         Path: The file path for the FIDE chess ratings.
@@ -263,7 +266,9 @@ def generate_file_path(year: int, month: int, game_format: FideGameFormat) -> Pa
         f"Generating file path for year {year}, month {month}, and game format "
         f"{game_format.value}..."
     )
-    file_name = Path(f"fide_chess_ratings_{year}_{month:02d}_{game_format.value}")
+    file_name = Path(
+        f"fide_chess_ratings_{year}_{month:02d}_{game_format.value}.{extension}"
+    )
     file_path = Path("data") / "fide_ratings" / game_format / file_name
     logger.info(f"File path: {file_path}")
 
