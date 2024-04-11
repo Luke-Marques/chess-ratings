@@ -1,4 +1,4 @@
-name: Prefect Blocks
+name: Deploy Prefect Blocks
 on:
   workflow_dispatch:
     inputs:

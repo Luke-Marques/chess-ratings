@@ -1,4 +1,4 @@
-name: Prefect Deployments CI/CD
+name: Deploy Prefect Flows (CI/CD)
 on:
   workflow_dispatch:
   pull_request:

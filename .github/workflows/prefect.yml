@@ -1,4 +1,4 @@
-name: "Prefect deployment complete workflow."
+name: Prefect Deployment Pipeline for GCP
 on:
   workflow_dispatch:
     inputs:

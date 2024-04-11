@@ -1,4 +1,4 @@
-name: Prefect VM container
+name: Deploy Prefect Worker Container on GCP VM
 on:
   workflow_dispatch:
     inputs:
