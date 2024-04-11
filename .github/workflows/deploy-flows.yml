@@ -26,7 +26,7 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - id: set-matrix
         run: echo "matrix=$(ls chess_ratings_pipeline/flows/*.py | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
@@ -38,7 +38,7 @@ jobs:
         flows: ${{ fromJson(needs.list-flows.outputs.matrix) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - id: flow  # example output: "flows/hello.py:hello"
         run: |
           export FLOW_NAME=$(basename ${{ matrix.flows }} .py)
