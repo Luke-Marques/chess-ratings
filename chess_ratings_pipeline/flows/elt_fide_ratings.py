@@ -46,7 +46,7 @@ def generate_elt_fide_ratings_flow_name() -> str:
     fide_game_format: str = parameters["fide_game_format"]
     name = (
         f"{flow_name}-year-{year}-"
-        f"months-{months.min()}-{months.max()}-game-format-{fide_game_format}"
+        f"months-{min(months)}-{max(months)}-game-format-{fide_game_format}"
     )
     return name
 
