@@ -247,7 +247,7 @@ def elt_fide_ratings(
             f"{fide_game_format.value}, dataset {index+1} of "
             f"{len(date_game_format_combinations)}..."
         )
-        elt_single_fide_ratings_dataset().submit(
+        elt_single_fide_ratings_dataset.submit(
             year,
             month,
             fide_game_format,
