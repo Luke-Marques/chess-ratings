@@ -6,6 +6,7 @@ from typing import List, Tuple
 import polars as pl
 from prefect import flow
 from prefect.logging import get_run_logger
+from prefect.runtime import flow_run
 from prefect_gcp import GcpCredentials
 from prefect_gcp.cloud_storage import GcsBucket
 
@@ -27,7 +28,30 @@ from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
 )
 
 
-@flow(log_prints=True)
+def generate_elt_single_fide_ratings_dataset_flow_name() -> str:
+    flow_name = flow_run.flow_name
+    parameters = flow_run.parameters
+    year: int = parameters["year"]
+    month: int = parameters["month"]
+    fide_game_format: FideGameFormat = parameters["fide_game_format"]
+    name = f"{flow_name}-{year}-{month}-{fide_game_format.value}"
+    return name
+
+
+def generate_elt_fide_ratings_flow_name() -> str:
+    flow_name = flow_run.flow_name
+    parameters = flow_run.parameters
+    years: List[int] = parameters["years"]
+    months: List[int] = parameters["months"]
+    fide_game_format: str = parameters["fide_game_format"]
+    name = (
+        f"{flow_name}-years-{years.min()}-{years.max()}-"
+        f"months-{months.min()}-{months.max()}-game-format-{fide_game_format}"
+    )
+    return name
+
+
+@flow(flow_run_name=generate_elt_single_fide_ratings_dataset_flow_name, log_prints=True)
 def elt_single_fide_ratings_dataset(
     year: int,
     month: int,
@@ -158,7 +182,7 @@ def elt_single_fide_ratings_dataset(
     logger.info(end_message)
 
 
-@flow(log_prints=True)
+@flow(flow_run_name=generate_elt_fide_ratings_flow_name, log_prints=True)
 def elt_fide_ratings(
     years: List[int] | int = datetime.today().year,
     months: List[int] | int = datetime.today().month,
