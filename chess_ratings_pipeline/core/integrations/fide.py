@@ -396,6 +396,8 @@ def clean_fide_ratings(df: pl.DataFrame, year: int, month: int) -> pl.DataFrame:
             # add ratings period column
             pl.lit(year).alias("period_year"),
             pl.lit(month).alias("period_month"),
+            # ensure foa_title column is of dtype string/Utf8
+            pl.col("foa_title").cast(pl.Utf8),
         )
         .collect()
     )

@@ -320,6 +320,4 @@ def elt_cdc_stats(
 
 
 if __name__ == "__main__":
-    elt_cdc_stats(
-        [ChessTitle.WGM, ChessTitle.WIM], store_local=True, overwrite_existing=True
-    )
+    elt_cdc_stats()
