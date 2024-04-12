@@ -93,7 +93,7 @@ def write_dataframe_to_local(
     return destination
 
 
-@task(log_prints=True, retries=3, retry_delay_seconds=5)
+@task(log_prints=True, retries=3, retry_delay_seconds=5, timeout_seconds=500)
 def check_if_file_exists_in_gcs(file_path: Path, gcs_bucket_block: GcsBucket) -> bool:
     """
     Check if a file exists in a Google Cloud Storage (GCS) bucket.
@@ -120,7 +120,7 @@ def check_if_file_exists_in_gcs(file_path: Path, gcs_bucket_block: GcsBucket) ->
     return False
 
 
-@flow(log_prints=True, retries=3, retry_delay_seconds=5)
+@flow(log_prints=True, retries=3, retry_delay_seconds=5, timeout_seconds=500)
 def write_dataframe_to_gcs(
     df: pd.DataFrame | pl.DataFrame,
     destination: Path,

@@ -35,7 +35,7 @@ def prettify_list(list: list, indent_size=4, initial_indent=0, seperator=",") ->
     return prettified_list
 
 
-@flow(log_prints=True, retries=3)
+@flow(log_prints=True, retries=3, timeout_seconds=500)
 def load_file_gcs_to_bq(
     gcs_file: Path,
     gcp_credentials_block: GcpCredentials,
