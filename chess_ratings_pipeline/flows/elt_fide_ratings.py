@@ -243,11 +243,11 @@ def elt_fide_ratings(
         date_game_format_combinations
     ):
         logger.info(
-            f"Running FIDE ratings ELT sub-flow for {year}-{month} "
+            f"Submitting FIDE ratings ELT sub-flow for {year}-{month} "
             f"{fide_game_format.value}, dataset {index+1} of "
             f"{len(date_game_format_combinations)}..."
         )
-        elt_single_fide_ratings_dataset(
+        elt_single_fide_ratings_dataset().submit(
             year,
             month,
             fide_game_format,
@@ -256,9 +256,9 @@ def elt_fide_ratings(
             store_local,
             overwrite_existing,
         )
-        logger.info(
-            f"Finished ELT sub-flow for {year}-{month} {fide_game_format.value}."
-        )
+        # logger.info(
+        #     f"Finished ELT sub-flow for {year}-{month} {fide_game_format.value}."
+        # )
 
     # Log flow end message
     end_time = datetime.now()
