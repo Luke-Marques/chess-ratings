@@ -41,11 +41,11 @@ def generate_elt_single_fide_ratings_dataset_flow_name() -> str:
 def generate_elt_fide_ratings_flow_name() -> str:
     flow_name = flow_run.flow_name
     parameters = flow_run.parameters
-    years: List[int] = parameters["years"]
+    year: int = parameters["year"]
     months: List[int] = parameters["months"]
     fide_game_format: str = parameters["fide_game_format"]
     name = (
-        f"{flow_name}-years-{years.min()}-{years.max()}-"
+        f"{flow_name}-year-{year}-"
         f"months-{months.min()}-{months.max()}-game-format-{fide_game_format}"
     )
     return name
@@ -184,7 +184,7 @@ def elt_single_fide_ratings_dataset(
 
 @flow(flow_run_name=generate_elt_fide_ratings_flow_name, log_prints=True)
 def elt_fide_ratings(
-    years: List[int] | int = datetime.today().year,
+    year: int = datetime.today().year,
     months: List[int] | int = datetime.today().month,
     fide_game_format: str = "all",
     gcp_credentials_block_name: str = "gcp-creds-chess-ratings",
@@ -208,7 +208,7 @@ def elt_fide_ratings(
     start_time = datetime.now()
     start_message = f"""Starting `elt_fide_ratings` parent-flow at {start_time} (local time).
     Inputs:
-        years (List[int] | int): {years}
+        year (int): {year}
         months (List[int] | int): {months}
         fide_game_format (str): {fide_game_format}
         gcp_credentials_block_name (str): {gcp_credentials_block_name}
@@ -218,8 +218,8 @@ def elt_fide_ratings(
     logger.info(start_message)
 
     # Convert int year/month values to lists
-    if isinstance(years, int):
-        years = [years]
+    if isinstance(year, int):
+        year = [year]
     if isinstance(months, int):
         months = [months]
 
@@ -261,7 +261,7 @@ def elt_fide_ratings(
         "combination..."
     )
     date_game_format_combinations: List[Tuple[int, int, FideGameFormat]] = list(
-        product(years, months, fide_game_formats)
+        product(year, months, fide_game_formats)
     )
     for index, (year, month, fide_game_format) in enumerate(
         date_game_format_combinations
