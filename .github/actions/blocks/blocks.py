@@ -37,7 +37,7 @@ cloud_run_job_block = CloudRunJob(
     region=args.region,
     credentials=gcp_credentials,
     cpu=8,
-    memory=31,
+    memory=32,
     memory_unit="Gi",
 )
 cloud_run_job_block.save(args.block_name, overwrite=True)
