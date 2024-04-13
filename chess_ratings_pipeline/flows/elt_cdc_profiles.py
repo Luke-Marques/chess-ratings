@@ -2,22 +2,59 @@ from datetime import datetime, timedelta
 from typing import List, Literal
 
 import polars as pl
+from prefect import flow
+from prefect.logging import get_run_logger
+from prefect.runtime import flow_run
 from prefect_gcp import GcpCredentials
 from prefect_gcp.cloud_storage import GcsBucket
 
 from chess_ratings_pipeline.core.integrations.cdc.chess_title import ChessTitle
 from chess_ratings_pipeline.core.integrations.cdc.profiles import (
-    extract_titled_cdc_profiles,
     clean_cdc_profiles,
+    extract_titled_cdc_profiles,
     generate_cdc_profiles_file_path,
 )
+from chess_ratings_pipeline.core.integrations.google_bigquery import load_file_gcs_to_bq
 from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
     write_dataframe_to_gcs,
     write_dataframe_to_local,
 )
-from chess_ratings_pipeline.core.integrations.google_bigquery import load_file_gcs_to_bq
-from prefect import flow
-from prefect.logging import get_run_logger
+
+
+def generate_elt_cdc_profiles_flow_name() -> str:
+    """
+    Generates the name of the `elt_cdc_profiles` flow based on the parameters provided
+    to the flow.
+
+    Returns:
+        str: The name of the `elt_cdc_profiles` flow.
+    """
+    flow_name = flow_run.flow_name
+    parameters = flow_run.parameters
+    chess_titles: ChessTitle | List[ChessTitle] | Literal["all"] = parameters[
+        "chess_titles"
+    ]
+    if chess_titles == "all" or chess_titles == list(ChessTitle):
+        name = f"{flow_name}-all-titles"
+    elif isinstance(chess_titles, list):
+        name = f"{flow_name}-{'-'.join([title.name.lower() for title in chess_titles])}"
+    elif isinstance(chess_titles, ChessTitle):
+        name = f"{flow_name}-{chess_titles.name.lower()}"
+    return name
+
+
+def generate_elt_single_title_cdc_profiles_flow_name() -> str:
+    """
+    Generates the name of the `elt_single_title_cdc_profiles` flow based on the
+    parameters provided to the flow.
+
+    Returns:
+        str: The name of the `elt_single_title_cdc_profiles` flow.
+    """
+    flow_name = flow_run.flow_name
+    parameters = flow_run.parameters
+    chess_title: ChessTitle = parameters["chess_title"]
+    return f"{flow_name}-{chess_title.name.lower()}"
 
 
 @flow(log_prints=True)

@@ -5,6 +5,7 @@ from typing import Dict, List, Literal, Optional
 import polars as pl
 from prefect import flow
 from prefect.logging import get_run_logger
+from prefect.runtime import flow_run
 from prefect_gcp import GcpCredentials
 from prefect_gcp.cloud_storage import GcsBucket
 
@@ -19,6 +20,59 @@ from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
     write_dataframe_to_gcs,
     write_dataframe_to_local,
 )
+
+
+def generate_load_single_cdc_game_format_stats_flow_name() -> str:
+    """
+    Generates the name of the `load_single_cdc_game_format_stats` flow based on the parameters provided
+    to the flow.
+
+    Returns:
+        str: The name of the `load_single_cdc_game_format_stats` flow.
+    """
+    flow_name = flow_run.flow_name
+    parameters = flow_run.parameters
+    chess_title: ChessTitle = parameters["chess_title"]
+    cdc_game_format: str = parameters["cdc_game_format"]
+    name = f"{flow_name}-{chess_title.value}-{cdc_game_format}"
+    return name
+
+
+def generate_elt_single_title_cdc_stats_flow_name() -> str:
+    """
+    Generates the name of the `elt_single_title_cdc_stats` flow based on the parameters provided
+    to the flow.
+
+    Returns:
+        str: The name of the `elt_single_title_cdc_stats` flow.
+    """
+    flow_name = flow_run.flow_name
+    parameters = flow_run.parameters
+    chess_title: ChessTitle = parameters["chess_title"]
+    name = f"{flow_name}-{chess_title.value}"
+    return name
+
+
+def generate_elt_cdc_stats_flow_name() -> str:
+    """
+    Generates the name of the `elt_cdc_stats` flow based on the parameters provided
+    to the flow.
+
+    Returns:
+        str: The name of the `elt_cdc_stats` flow.
+    """
+    flow_name = flow_run.flow_name
+    parameters = flow_run.parameters
+    chess_titles: List[ChessTitle] | ChessTitle | Literal["all"] = parameters[
+        "chess_titles"
+    ]
+    if chess_titles == "all" or chess_titles == list(ChessTitle):
+        name = f"{flow_name}-all-titles"
+    elif isinstance(chess_titles, list):
+        name = f"{flow_name}-{'-'.join([title.name.lower() for title in chess_titles])}"
+    elif isinstance(chess_titles, ChessTitle):
+        name = f"{flow_name}-{chess_titles.name.lower()}"
+    return name
 
 
 @flow(log_prints=True)

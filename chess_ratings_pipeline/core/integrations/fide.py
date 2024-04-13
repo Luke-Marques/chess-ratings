@@ -6,10 +6,9 @@ from typing import Iterable, Optional
 import pandas as pd
 import patito as pt
 import polars as pl
-from pydantic import validator
-
 from prefect import flow, task
 from prefect.logging import get_run_logger
+from pydantic import validator
 
 
 class FideGameFormat(StrEnum):

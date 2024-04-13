@@ -29,25 +29,46 @@ from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
 
 
 def generate_elt_single_fide_ratings_dataset_flow_name() -> str:
+    """
+    Generates the name for the elt_single_fide_ratings_dataset flow based on the
+    provided parameters to the flow.
+
+    Returns:
+        str: The generated flow name.
+    """
     flow_name = flow_run.flow_name
     parameters = flow_run.parameters
     year: int = parameters["year"]
     month: int = parameters["month"]
     fide_game_format: FideGameFormat = parameters["fide_game_format"]
-    name = f"{flow_name}-{year}-{month}-{fide_game_format.value}"
+    name = f"{flow_name}-{year}-{month}-{fide_game_format.value.lower()}"
     return name
 
 
 def generate_elt_fide_ratings_flow_name() -> str:
+    """
+    Generates a flow name for the elt_fide_ratings flow based on the parameters provided
+    to the flow.
+
+    Returns:
+        str: The generated flow name.
+    """
     flow_name = flow_run.flow_name
     parameters = flow_run.parameters
-    year: int = parameters["year"]
-    months: List[int] = parameters["months"]
+    years: List[int] | int = parameters["years"]
+    months: List[int] | int = parameters["months"]
     fide_game_format: str = parameters["fide_game_format"]
-    name = (
-        f"{flow_name}-year-{year}-"
-        f"months-{min(months)}-{max(months)}-game-format-{fide_game_format}"
-    )
+    if isinstance(years, int) and isinstance(months, int):
+        name = f"{flow_name}-{years}-{months}-{fide_game_format}"
+    elif isinstance(years, int) and not isinstance(months, int):
+        name = f"{flow_name}-{years}-{min(months)}-to-{max(months)}-{fide_game_format}"
+    elif not isinstance(years, int) and isinstance(months, int):
+        name = f"{flow_name}-{min(years)}-to-{max(years)}-{months}-{fide_game_format}"
+    else:
+        name = (
+            f"{flow_name}-{min(years)}-to-{max(years)}-{min(months)}-to-{max(months)}-"
+            f"{fide_game_format}"
+        )
     return name
 
 
@@ -184,7 +205,7 @@ def elt_single_fide_ratings_dataset(
 
 @flow(flow_run_name=generate_elt_fide_ratings_flow_name, log_prints=True)
 def elt_fide_ratings(
-    year: int = datetime.today().year,
+    years: List[int] | int = datetime.today().year,
     months: List[int] | int = datetime.today().month,
     fide_game_format: str = "all",
     gcp_credentials_block_name: str = "gcp-creds-chess-ratings",
@@ -208,7 +229,7 @@ def elt_fide_ratings(
     start_time = datetime.now()
     start_message = f"""Starting `elt_fide_ratings` parent-flow at {start_time} (local time).
     Inputs:
-        year (int): {year}
+        years (List[int] | int): {years}
         months (List[int] | int): {months}
         fide_game_format (str): {fide_game_format}
         gcp_credentials_block_name (str): {gcp_credentials_block_name}
@@ -218,8 +239,8 @@ def elt_fide_ratings(
     logger.info(start_message)
 
     # Convert int year/month values to lists
-    if isinstance(year, int):
-        year = [year]
+    if isinstance(years, int):
+        years = [years]
     if isinstance(months, int):
         months = [months]
 
@@ -261,7 +282,7 @@ def elt_fide_ratings(
         "combination..."
     )
     date_game_format_combinations: List[Tuple[int, int, FideGameFormat]] = list(
-        product(year, months, fide_game_formats)
+        product(years, months, fide_game_formats)
     )
     for index, (year, month, fide_game_format) in enumerate(
         date_game_format_combinations
@@ -272,7 +293,7 @@ def elt_fide_ratings(
             f"{len(date_game_format_combinations)}..."
         )
         elt_single_fide_ratings_dataset(
-            year,
+            years,
             month,
             fide_game_format,
             gcp_credentials_block,
