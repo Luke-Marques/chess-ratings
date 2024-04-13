@@ -158,7 +158,7 @@ def load_single_cdc_game_format_stats(
         logger.info("Finished writing game statistics locally.")
 
     # Load player game statistics data from GCS bucket to BigQuery
-    bq_table_name = bq_table_name_prefix + cdc_game_format
+    bq_table_name = f"{bq_table_name_prefix}_{cdc_game_format}"
     logger.info(
         f"Loading cleaned Chess.com {chess_title.value} titled player "
         f"{cdc_game_format} statistics data to BigQuery data warehouse "
