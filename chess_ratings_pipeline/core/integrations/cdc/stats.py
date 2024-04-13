@@ -143,15 +143,20 @@ def clean_cdc_stats(stats: pl.DataFrame) -> pl.DataFrame:
         pl.DataFrame:
             The cleaned DataFrame with renamed columns and converted date columns.
     """
-    stats = stats.rename(
+    # Standardise column names
+    stats = stats.lazy().rename(
         lambda col: col
         if len(col.split(".")) == 1
         else col.split(".", maxsplit=1)[1].replace(".", "_")
-    ).with_columns(
+    )
+    # Ensure date columns are in date format, and add date scraped column
+    stats = stats.with_columns(
         pl.from_epoch(pl.col(r"^.*date.*$")),  # convert all date columns date dtype
         pl.lit(datetime.today()).alias("scrape_date"),  # add date scraped as column
     )
-    return stats
+    # Remove columns with `tournament` in the name as they are not relevant
+    stats = stats.drop([col for col in stats.columns if "tournament" in col.lower()])
+    return stats.collect()
 
 
 @flow(log_prints=True)
