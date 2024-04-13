@@ -293,7 +293,7 @@ def elt_fide_ratings(
             f"{len(date_game_format_combinations)}..."
         )
         elt_single_fide_ratings_dataset(
-            years,
+            year,
             month,
             fide_game_format,
             gcp_credentials_block,
