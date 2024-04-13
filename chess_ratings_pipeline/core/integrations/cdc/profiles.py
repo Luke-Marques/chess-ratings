@@ -82,27 +82,72 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
     """
     # Create Prefect info logger
     logger = get_run_logger()
-
-    # Clean player profile DataFrame
     logger.info("Cleaning Chess.com player profiles DataFrame...")
-    profiles_clean = (
-        profiles.lazy()
-        .rename(
-            {
-                "avatar": "avatar_url",
-                "@id": "api_url",
-                "url": "profile_url",
-                "followers": "follower_count",
-            }
-        )
-        # Add column of todays date/time
-        .with_columns(pl.lit(datetime.now()).alias("scrape_datetime"))
-        .unique()
-        .collect()
-    )
-    logger.info(f"Cleaned Chess.com player profiles DataFrame: \n\t{profiles_clean}")
 
-    return profiles_clean
+    # Convert DataFrame to LazyFrame
+    profiles = profiles.lazy()
+
+    # Define schema of columns Polars data types for DataFrame
+    schema = {
+        "avatar": pl.Utf8,
+        "@id": pl.Utf8,
+        "url": pl.Utf8,
+        "username": pl.Utf8,
+        "player_id": pl.Int64,
+        "title": pl.Utf8,
+        "status": pl.Utf8,
+        "name": pl.Utf8,
+        "location": pl.Utf8,
+        "country": pl.Utf8,
+        "joined": pl.Int64,
+        "last_online": pl.Int64,
+        "followers": pl.Int64,
+        "is_streamer": pl.Bool,
+        "twitch_url": pl.Utf8,
+        "fide": pl.Int16,
+    }
+
+    # Ensure required columns are present in DataFrame
+    profiles = profiles.with_columns(
+        [
+            pl.lit(None).alias(col)
+            for col in schema.keys()
+            if col not in profiles.columns
+        ]
+    )
+
+    # Convert columns to data types specified in schema
+    profiles = profiles.with_columns(
+        [
+            pl.from_epoch(col)
+            if col in ["joined", "last_online"]
+            else pl.col(col).cast(dtype)
+            for col, dtype in schema.items()
+        ]
+    )
+
+    # Rename columns
+    profiles = profiles.rename(
+        {
+            "avatar": "avatar_url",
+            "@id": "api_url",
+            "url": "profile_url",
+            "followers": "follower_count",
+        }
+    )
+
+    # Drop duplicate rows and gather DataFrame
+    profiles = profiles.unique().collect()
+
+    # Add column of todays date/time
+    profiles = profiles.with_columns(pl.lit(datetime.now()).alias("scrape_datetime"))
+
+    # Display cleaned DataFrame and Schema
+    logger.info("Finished cleaning Chess.com player profiles DataFrame.")
+    logger.info(f"DataFrame: {profiles}")
+    logger.info(f"Schema: {profiles.schema}")
+
+    return profiles
 
 
 @flow(log_prints=True)

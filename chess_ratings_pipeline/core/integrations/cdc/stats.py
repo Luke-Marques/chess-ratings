@@ -129,7 +129,7 @@ def seperate_game_formats(
 
 
 @task
-def clean_cdc_stats(stats: pl.DataFrame) -> pl.DataFrame:
+def clean_cdc_stats(stats: pl.DataFrame, cdc_game_format: str) -> pl.DataFrame:
     """
     Prefect task which cleans the input DataFrame by renaming columns and converting date columns to the
     Polars date data type. Also adds a column containing the todays date to show the
@@ -143,19 +143,82 @@ def clean_cdc_stats(stats: pl.DataFrame) -> pl.DataFrame:
         pl.DataFrame:
             The cleaned DataFrame with renamed columns and converted date columns.
     """
+    # Create Prefect info logger
+    logger = get_run_logger()
+    logger.info(f"Cleaning Chess.com player {cdc_game_format} statistics DataFrame...")
+
+    # Convert DataFrame to LazyFrame
+    stats = stats.lazy()
+
     # Standardise column names
-    stats = stats.lazy().rename(
+    stats = stats.rename(
         lambda col: col
         if len(col.split(".")) == 1
         else col.split(".", maxsplit=1)[1].replace(".", "_")
     )
-    # Ensure date columns are in date format, and add date scraped column
+
+    # Define schema of columns Polars data types for DataFrame, dependent on game format
+    if cdc_game_format in ["tactics", "lessons"]:
+        schema = {
+            "highest_rating": pl.Int16,
+            "highest_date": pl.Int64,
+            "lowest_rating": pl.Int16,
+            "lowest_date": pl.Int64,
+        }
+    elif cdc_game_format == "puzzle_rush":
+        schema = {
+            "daily_total_attempts": pl.Int16,
+            "daily_score": pl.Int16,
+            "best_total_attempts": pl.Int16,
+            "best_score": pl.Int16,
+        }
+    else:
+        schema = {
+            "last_date": pl.Int64,
+            "last_rating": pl.Int16,
+            "last_rd": pl.Int16,
+            "best_date": pl.Int64,
+            "best_rating": pl.Int16,
+            "best_game": pl.Utf8,
+            "record_win": pl.Int16,
+            "record_loss": pl.Int16,
+            "record_draw": pl.Int16,
+            "record_time_per_move": pl.Int16,
+            "record_timeout_percent": pl.Float64,
+            "tournament_count": pl.Int16,
+            "tournament_withdraw": pl.Int16,
+            "tournament_points": pl.Int16,
+            "tournament_highest_finish": pl.Int16,
+        }
+
+    # Ensure all data fields for game format exist as columns (empty if not present)
     stats = stats.with_columns(
-        pl.from_epoch(pl.col(r"^.*date.*$")),  # convert all date columns date dtype
-        pl.lit(datetime.today()).alias("scrape_date"),  # add date scraped as column
+        [
+            pl.lit(None).cast(pl.Utf8).alias(col)
+            for col in schema.keys()
+            if col not in stats.columns
+        ]
     )
+
+    # Ensure columns have correct data types
+    stats = stats.with_columns(
+        [
+            pl.from_epoch(pl.col(col)) if "date" in col else pl.col(col).cast(dtype)
+            for col, dtype in schema.items()
+        ]
+    )
+
+    # Add column containing todays date, to show date data was scraped
+    stats = stats.with_column(pl.lit(datetime.today()).alias("scrape_date"))
+
     # Remove columns with `tournament` in the name as they are not relevant
     stats = stats.drop([col for col in stats.columns if "tournament" in col.lower()])
+
+    # Display cleaned DataFrame
+    logger.info(f"Finished cleaning {cdc_game_format} statistics DataFrame.")
+    logger.info(f"DataFrame: {stats}")
+    logger.info(f"Schema: {stats.schema}")
+
     return stats.collect()
 
 

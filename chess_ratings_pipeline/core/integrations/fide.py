@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
 import pandas as pd
 import patito as pt
@@ -103,30 +103,6 @@ def convert_numeric_month_to_string(month: int) -> str:
         "dec",
     ]
     return months[month - 1]
-
-
-def add_missing_columns(
-    df: pl.DataFrame | pl.LazyFrame, required_columns: Iterable[str]
-) -> pl.DataFrame | pl.LazyFrame:
-    """
-    Adds missing columns to a Polars DataFrame or LazyFrame.
-
-    Args:
-        df (pl.DataFrame | pl.LazyFrame): The input Polars DataFrame or LazyFrame.
-        required_columns (Iterable[str]): The list of required column names.
-
-    Returns:
-        pl.DataFrame | pl.LazyFrame:
-            The Polars DataFrame or LazyFrame with missing columns added.
-    """
-    df = df.with_columns(
-        [
-            pl.lit(None).cast(pl.Utf8).alias(col)
-            for col in required_columns
-            if col not in df.columns
-        ]
-    )
-    return df
 
 
 @task(log_prints=True)
@@ -348,7 +324,7 @@ def extract_fide_ratings(
 
 
 @task(log_prints=True, cache_result_in_memory=False)
-def clean_fide_ratings(df: pl.DataFrame, year: int, month: int) -> pl.DataFrame:
+def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataFrame:
     """
     Clean a Polars DataFrame containing FIDE chess ratings data by adding missing
     columns, renaming columns, converting data types, and adding columns corresponding
@@ -365,42 +341,71 @@ def clean_fide_ratings(df: pl.DataFrame, year: int, month: int) -> pl.DataFrame:
     """
     # Create Prefect info logger
     logger = get_run_logger()
+    logger.info(f"Cleaning FIDE ratings DataFrame for {year}-{month}...")
 
-    # Add missing columns as empty columns to DataFrame
-    required_columns = ["foa_title"]  # this is sometimes missing from older data
-    logger.info(
-        f"Adding missing columns {required_columns} to FIDE ratings DataFrame..."
+    # Define schema of Polars data types for FIDE ratings DataFrame
+    schema = {
+        "fideid": pl.Int64,
+        "name": pl.Utf8,
+        "fide_federation": pl.Utf8,
+        "sex": pl.Utf8,
+        "title": pl.Utf8,
+        "w_title": pl.Utf8,
+        "o_title": pl.Utf8,
+        "rating": pl.Int16,
+        "games": pl.Int16,
+        "k": pl.Int16,
+        "birthday": pl.Int16,
+        "flag": pl.Utf8,
+        "foa_title": pl.Utf8,
+    }
+
+    # Convert ratings DataFrame to LazyFrame
+    ratings = ratings.lazy()
+
+    # Ensure all requried columns are present in DataFrame
+    ratings = ratings.with_columns(
+        [pl.lit(None) for col in schema.keys() if col not in ratings.columns]
     )
-    df: pl.DataFrame = add_missing_columns(df, required_columns)
-    logger.info(f"DataFrame Columns: {df.columns}")
 
-    # Clean and transform the DataFrame
-    logger.info("Cleaning and transforming FIDE ratings DataFrame...")
-    df: pl.LazyFrame = (
-        df.lazy()
-        .rename(
-            {
-                "fideid": "fide_id",
-                "name": "player_name",
-                "country": "fide_federation",
-                "games": "game_count",
-                "birthday": "birth_year",
-            }
-        )
-        .with_columns(
-            # convert birth year column to date
-            pl.col("birth_year").replace(0, None).cast(pl.Datetime).dt.year(),
-            # add ratings period column
+    # Ensure all columns are of the correct data type
+    ratings = ratings.with_columns(
+        [pl.col(col).cast(dtype) for col, dtype in schema.items()]
+    )
+
+    # Rename columns
+    ratings = ratings.rename(
+        {
+            "fideid": "fide_id",
+            "name": "player_name",
+            "country": "fide_federation",
+            "games": "game_count",
+            "birthday": "birth_year",
+        }
+    )
+
+    # Convert birth year column to date
+    ratings = ratings.with_columns(
+        pl.col("birth_year").replace(0, None).cast(pl.Datetime).dt.year()
+    )
+
+    # Add columns for ratings period (year and month)
+    ratings = ratings.with_columns(
+        [
             pl.lit(year).alias("period_year"),
             pl.lit(month).alias("period_month"),
-            # ensure foa_title column is of dtype string/Utf8
-            pl.col("foa_title").cast(pl.Utf8),
-        )
-        .collect()
+        ]
     )
-    logger.info(f"Cleaned DataFrame: \n{df}")
 
-    return df
+    # Drop duplicate rows and gather DataFrame
+    ratings = ratings.unique().collect()
+
+    # Display cleaned DataFrame
+    logger.info("Finished cleaning FIDE ratings DataFrame.")
+    logger.info(f"DataFrame: {ratings}")
+    logger.info(f"Schema: {ratings.schema}")
+
+    return ratings
 
 
 @task(log_prints=True, cache_result_in_memory=False)
