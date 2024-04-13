@@ -31,7 +31,7 @@ def check_if_file_exists_locally(file_path: Path) -> bool:
     return False
 
 
-@flow(log_prints=True)
+@flow(log_prints=True, cache_result_in_memory=False)
 def write_dataframe_to_local(
     df: pd.DataFrame | pl.DataFrame, destination: Path, overwrite_existing: bool = True
 ) -> Path | None:
@@ -120,7 +120,13 @@ def check_if_file_exists_in_gcs(file_path: Path, gcs_bucket_block: GcsBucket) ->
     return False
 
 
-@flow(log_prints=True, retries=3, retry_delay_seconds=5, timeout_seconds=500)
+@flow(
+    log_prints=True,
+    retries=3,
+    retry_delay_seconds=5,
+    timeout_seconds=500,
+    cache_result_in_memory=False,
+)
 def write_dataframe_to_gcs(
     df: pd.DataFrame | pl.DataFrame,
     destination: Path,

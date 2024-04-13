@@ -275,7 +275,7 @@ def generate_file_path(
     return file_path
 
 
-@task(log_prints=True, retries=3)
+@task(log_prints=True, retries=3, cache_result_in_memory=False)
 def parse_xml_url_to_dataframe(url: str) -> pl.DataFrame:
     """
     Parses an XML file from the given URL, via Pandas, and returns a Polars DataFrame.
@@ -297,7 +297,7 @@ def parse_xml_url_to_dataframe(url: str) -> pl.DataFrame:
     return df
 
 
-@flow(log_prints=True)
+@flow(log_prints=True, cache_result_in_memory=False)
 def extract_fide_ratings(
     year: int, month: int, game_format: FideGameFormat
 ) -> pl.DataFrame:
@@ -348,7 +348,7 @@ def extract_fide_ratings(
     return df
 
 
-@task(log_prints=True)
+@task(log_prints=True, cache_result_in_memory=False)
 def clean_fide_ratings(df: pl.DataFrame, year: int, month: int) -> pl.DataFrame:
     """
     Clean a Polars DataFrame containing FIDE chess ratings data by adding missing
@@ -406,7 +406,7 @@ def clean_fide_ratings(df: pl.DataFrame, year: int, month: int) -> pl.DataFrame:
     return df
 
 
-@task(log_prints=True)
+@task(log_prints=True, cache_result_in_memory=False)
 def validate_fide_ratings(df: pl.DataFrame) -> None:
     """
     Validates the FIDE chess ratings data in the given Polars DataFrame using Patito
