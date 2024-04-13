@@ -25,6 +25,7 @@ args = parser.parse_args()
 
 # load GCP credentials block
 gcp_credentials = GcpCredentials.load(args.gcp_creds_block_name)
+print(gcp_credentials)
 
 # create GitHub block and save to Prefect Cloud
 github_block = GitHub(repository=args.repo, reference=args.branch)
