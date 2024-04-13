@@ -57,7 +57,7 @@ def generate_elt_single_title_cdc_profiles_flow_name() -> str:
     return f"{flow_name}-{chess_title.name.lower()}"
 
 
-@flow(log_prints=True)
+@flow(flow_run_name=generate_elt_single_title_cdc_profiles_flow_name, log_prints=True)
 def elt_single_title_cdc_profiles(
     chess_title: ChessTitle,
     gcp_credentials_block: GcpCredentials,
@@ -177,7 +177,7 @@ def elt_single_title_cdc_profiles(
     logger.info(end_message)
 
 
-@flow(log_prints=True)
+@flow(flow_run_name=generate_elt_cdc_profiles_flow_name, log_prints=True)
 def elt_cdc_profiles(
     chess_titles: ChessTitle | List[ChessTitle] | Literal["all"] = "all",
     gcp_credentials_block_name: str = "gcp-creds-chess-ratings",

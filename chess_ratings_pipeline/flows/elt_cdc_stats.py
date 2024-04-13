@@ -75,7 +75,9 @@ def generate_elt_cdc_stats_flow_name() -> str:
     return name
 
 
-@flow(log_prints=True)
+@flow(
+    flow_run_name=generate_load_single_cdc_game_format_stats_flow_name, log_prints=True
+)
 def load_single_cdc_game_format_stats(
     chess_title: ChessTitle,
     cdc_game_format: str,
@@ -179,7 +181,7 @@ def load_single_cdc_game_format_stats(
     logger.info(end_message)
 
 
-@flow(log_prints=True)
+@flow(flow_run_name=generate_elt_single_title_cdc_stats_flow_name, log_prints=True)
 def elt_single_title_cdc_stats(
     chess_title: ChessTitle,
     gcp_credentials_block: GcpCredentials,
@@ -291,7 +293,7 @@ def elt_single_title_cdc_stats(
     logger.info(end_message)
 
 
-@flow(log_prints=True)
+@flow(flow_run_name=generate_elt_cdc_stats_flow_name, log_prints=True)
 def elt_cdc_stats(
     chess_titles: Optional[List[ChessTitle] | ChessTitle] | Literal["all"] = "all",
     gcp_credentials_block_name: Optional[str] = "gcp-creds-chess-ratings",
