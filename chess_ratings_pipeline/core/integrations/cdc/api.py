@@ -1,6 +1,8 @@
+import logging
 from typing import Dict, List
 
 import requests
+
 from chess_ratings_pipeline.core.integrations.cdc.chess_title import ChessTitle
 
 
@@ -14,7 +16,7 @@ class ChessDotComAPI:
         self.api_endpoint_prefix: str = "https://api.chess.com/pub/"
         self.headers = headers
 
-    def _request(self, api_endpoint_suffix: str) -> dict:
+    def _request(self, api_endpoint_suffix: str) -> dict | None:
         """
         Queries the public Chess.com API for a given API url endpoint suffix and returns
         the JSON response as a dictionary object.
@@ -28,8 +30,13 @@ class ChessDotComAPI:
         Raises:
             ValueError: If the API response is empty.
         """
+        logger = logging.getLogger()
         api_endpoint_url = self.api_endpoint_prefix + api_endpoint_suffix
-        response = requests.get(api_endpoint_url, headers=self.headers)
+        try:
+            response = requests.get(api_endpoint_url, headers=self.headers)
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"Error fetching data from Chess.com API: {e}")
+            return None
         # Check for empty response body
         response.raise_for_status()
         if response.status_code == 204:
