@@ -1,4 +1,3 @@
-import logging
 from typing import Dict, List
 
 import requests
@@ -30,13 +29,8 @@ class ChessDotComAPI:
         Raises:
             ValueError: If the API response is empty.
         """
-        logger = logging.getLogger()
         api_endpoint_url = self.api_endpoint_prefix + api_endpoint_suffix
-        try:
-            response = requests.get(api_endpoint_url, headers=self.headers)
-        except requests.exceptions.HTTPError as e:
-            logger.error(f"Error fetching data from Chess.com API: {e}")
-            return None
+        response = requests.get(api_endpoint_url, headers=self.headers)
         # Check for empty response body
         response.raise_for_status()
         if response.status_code == 204:
