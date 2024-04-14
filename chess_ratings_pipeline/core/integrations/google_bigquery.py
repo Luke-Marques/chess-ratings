@@ -32,7 +32,7 @@ class BigQueryDataType(StrEnum):
     RECORD = "RECORD"
 
 
-def get_bigquery_dtype_from_polars_dtype(
+def convert_polars_dtype_to_bigquery_field_type(
     polars_dtype: pl.DataType,
 ) -> BigQueryDataType | None:
     """
@@ -63,7 +63,9 @@ def get_bigquery_dtype_from_polars_dtype(
         (pl.Datetime): BigQueryDataType.DATETIME,
     }
     for polars_dtypes, bq_dtype in TYPE_MAPPING.items():
-        if polars_dtype in polars_dtypes:
+        if isinstance(polars_dtypes, Iterable) and polars_dtype in polars_dtypes:
+            return bq_dtype
+        elif polars_dtype == polars_dtypes:
             return bq_dtype
     return None
 
@@ -86,7 +88,9 @@ def generate_bigquery_schema(df: pl.DataFrame) -> List[SchemaField]:
             fields = generate_bigquery_schema(pl.from_pandas(pd.json_normalize(val)))
         else:
             fields = ()
-        type = "RECORD" if fields else get_bigquery_dtype_from_polars_dtype(dtype)
+        type = (
+            "RECORD" if fields else convert_polars_dtype_to_bigquery_field_type(dtype)
+        )
         schema.append(
             SchemaField(
                 name=column,
