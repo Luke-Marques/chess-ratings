@@ -194,7 +194,7 @@ def clean_cdc_stats(stats: pl.DataFrame, cdc_game_format: str) -> pl.DataFrame:
     # Ensure all data fields for game format exist as columns (empty if not present)
     stats = stats.with_columns(
         [
-            pl.lit(None).cast(pl.Utf8).alias(col)
+            pl.lit(None).alias(col)
             for col in schema.keys()
             if col not in stats.columns
         ]
