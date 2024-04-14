@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Dict, List, Literal, Optional
 
 import polars as pl
+from google.cloud.bigquery import SchemaField
 from prefect import flow
 from prefect.logging import get_run_logger
 from prefect.runtime import flow_run
@@ -15,7 +16,10 @@ from chess_ratings_pipeline.core.integrations.cdc.stats import (
     extract_titled_cdc_stats,
     generate_cdc_stats_file_path,
 )
-from chess_ratings_pipeline.core.integrations.google_bigquery import load_file_gcs_to_bq
+from chess_ratings_pipeline.core.integrations.google_bigquery import (
+    generate_bigquery_schema,
+    load_file_gcs_to_bq,
+)
 from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
     write_dataframe_to_gcs,
     write_dataframe_to_local,
@@ -158,6 +162,7 @@ def load_single_cdc_game_format_stats(
         logger.info("Finished writing game statistics locally.")
 
     # Load player game statistics data from GCS bucket to BigQuery
+    bq_schema: List[SchemaField] = generate_bigquery_schema(stats_df)
     bq_table_name = f"{bq_table_name_prefix}_{cdc_game_format}"
     logger.info(
         f"Loading cleaned Chess.com {chess_title.value} titled player "
@@ -166,6 +171,7 @@ def load_single_cdc_game_format_stats(
     )
     load_file_gcs_to_bq(
         gcs_file=destination,
+        bq_schema=bq_schema,
         gcp_credentials_block=gcp_credentials_block,
         gcs_bucket_block=gcs_bucket_block,
         dataset=bq_dataset_name,

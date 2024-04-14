@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import List, Literal
 
 import polars as pl
+from google.cloud.bigquery import SchemaField
 from prefect import flow
 from prefect.logging import get_run_logger
 from prefect.runtime import flow_run
@@ -14,7 +15,10 @@ from chess_ratings_pipeline.core.integrations.cdc.profiles import (
     extract_titled_cdc_profiles,
     generate_cdc_profiles_file_path,
 )
-from chess_ratings_pipeline.core.integrations.google_bigquery import load_file_gcs_to_bq
+from chess_ratings_pipeline.core.integrations.google_bigquery import (
+    generate_bigquery_schema,
+    load_file_gcs_to_bq,
+)
 from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
     write_dataframe_to_gcs,
     write_dataframe_to_local,
@@ -160,8 +164,10 @@ def elt_single_title_cdc_profiles(
         f"Loading cleaned Chess.com {chess_title.value} titled player profiles "
         f"data to BigQuery data warehouse {bq_dataset_name}/{bq_table_name}..."
     )
+    bq_schema: List[SchemaField] = generate_bigquery_schema(cdc_profiles)
     load_file_gcs_to_bq(
         gcs_file=destination,
+        bq_schema=bq_schema,
         gcp_credentials_block=gcp_credentials_block,
         gcs_bucket_block=gcs_bucket_block,
         dataset=bq_dataset_name,
