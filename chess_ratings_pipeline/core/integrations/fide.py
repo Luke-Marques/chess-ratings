@@ -365,7 +365,7 @@ def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataF
 
     # Ensure all requried columns are present in DataFrame
     ratings = ratings.with_columns(
-        [pl.lit(None) for col in schema.keys() if col not in ratings.columns]
+        [pl.lit(None).alias(col) for col in schema.keys() if col not in ratings.columns]
     )
 
     # Ensure all columns are of the correct data type
