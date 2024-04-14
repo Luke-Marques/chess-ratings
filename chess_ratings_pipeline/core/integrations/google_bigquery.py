@@ -156,10 +156,10 @@ def load_file_gcs_to_bq(
 
     # Get BQ schema from DataFrame
     logger.info("Generating BigQuery schema from DataFrame...")
-    bq_schema: List[SchemaField] = generate_bigquery_schema(
-        pl.read_parquet(f"{GCS_BUCKET_PREFIX}/{gcs_file}")
-    )
-    logger.info(f"BigQuery schema: {bq_schema}")
+    df = pl.read_parquet(f"{GCS_BUCKET_PREFIX}/{gcs_file}")
+    bq_schema: List[SchemaField] = generate_bigquery_schema(df)
+    logger.info(f"Polars DataFrame schema: \n\t{df.schema}")
+    logger.info(f"BigQuery schema: \n\t{bq_schema}")
 
     # Load file to BigQuery table
     logger.info(f"Loading {gcs_file} to BQ Warehouse...")
