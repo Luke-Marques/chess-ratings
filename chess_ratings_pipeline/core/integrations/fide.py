@@ -347,7 +347,7 @@ def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataF
     schema = {
         "fideid": pl.Int64,
         "name": pl.Utf8,
-        "fide_federation": pl.Utf8,
+        "country": pl.Utf8,
         "sex": pl.Utf8,
         "title": pl.Utf8,
         "w_title": pl.Utf8,
