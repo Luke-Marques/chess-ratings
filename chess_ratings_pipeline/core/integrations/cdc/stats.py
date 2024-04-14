@@ -183,7 +183,7 @@ def clean_cdc_stats(stats: pl.DataFrame, cdc_game_format: str) -> pl.DataFrame:
             "record_win": pl.Int16,
             "record_loss": pl.Int16,
             "record_draw": pl.Int16,
-            "record_time_per_move": pl.Int16,
+            "record_time_per_move": pl.Float64,
             "record_timeout_percent": pl.Float64,
             "tournament_count": pl.Int16,
             "tournament_withdraw": pl.Int16,
