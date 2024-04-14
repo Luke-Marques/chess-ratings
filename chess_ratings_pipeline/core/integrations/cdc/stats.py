@@ -193,11 +193,7 @@ def clean_cdc_stats(stats: pl.DataFrame, cdc_game_format: str) -> pl.DataFrame:
 
     # Ensure all data fields for game format exist as columns (empty if not present)
     stats = stats.with_columns(
-        [
-            pl.lit(None).alias(col)
-            for col in schema.keys()
-            if col not in stats.columns
-        ]
+        [pl.lit(None).alias(col) for col in schema.keys() if col not in stats.columns]
     )
 
     # Ensure columns have correct data types
@@ -214,12 +210,15 @@ def clean_cdc_stats(stats: pl.DataFrame, cdc_game_format: str) -> pl.DataFrame:
     # Remove columns with `tournament` in the name as they are not relevant
     stats = stats.drop([col for col in stats.columns if "tournament" in col.lower()])
 
+    # Gather DataFrame
+    stats = stats.collect()
+
     # Display cleaned DataFrame
     logger.info(f"Finished cleaning {cdc_game_format} statistics DataFrame.")
     logger.info(f"DataFrame: {stats}")
     logger.info(f"Schema: {stats.schema}")
 
-    return stats.collect()
+    return stats
 
 
 @flow(log_prints=True)
