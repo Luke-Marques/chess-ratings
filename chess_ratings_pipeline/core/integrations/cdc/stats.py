@@ -209,7 +209,7 @@ def clean_cdc_stats(stats: pl.DataFrame, cdc_game_format: str) -> pl.DataFrame:
     )
 
     # Add column containing todays date, to show date data was scraped
-    stats = stats.with_column(pl.lit(datetime.today()).alias("scrape_date"))
+    stats = stats.with_columns(pl.lit(datetime.today()).alias("scrape_date"))
 
     # Remove columns with `tournament` in the name as they are not relevant
     stats = stats.drop([col for col in stats.columns if "tournament" in col.lower()])
