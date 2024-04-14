@@ -102,7 +102,7 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
         "joined": pl.Int64,
         "last_online": pl.Int64,
         "followers": pl.Int64,
-        "is_streamer": pl.Bool,
+        "is_streamer": pl.Boolean,
         "twitch_url": pl.Utf8,
         "fide": pl.Int16,
     }
