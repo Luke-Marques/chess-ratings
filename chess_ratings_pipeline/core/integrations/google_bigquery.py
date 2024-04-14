@@ -1,13 +1,101 @@
 from datetime import datetime, timedelta
+from enum import StrEnum
 from pathlib import Path
 from typing import Iterable, List, Optional
 
-from google.cloud.bigquery import CreateDisposition, SourceFormat, WriteDisposition
+import pandas as pd
+import polars as pl
+from google.cloud.bigquery import (
+    CreateDisposition,
+    SchemaField,
+    SourceFormat,
+    WriteDisposition,
+)
+from prefect import flow, get_run_logger
 from prefect_gcp.bigquery import bigquery_load_cloud_storage
 from prefect_gcp.cloud_storage import GcsBucket
 from prefect_gcp.credentials import GcpCredentials
 
-from prefect import flow, get_run_logger
+
+class BigQueryDataType(StrEnum):
+    """
+    Enum class representing the data types supported by BigQuery.
+    """
+
+    INTEGER = "INTEGER"
+    FLOAT = "FLOAT"
+    BOOLEAN = "BOOLEAN"
+    STRING = "STRING"
+    DATE = "DATE"
+    TIME = "TIME"
+    DATETIME = "DATETIME"
+    RECORD = "RECORD"
+
+
+def get_bigquery_dtype_from_polars_dtype(
+    polars_dtype: pl.DataType,
+) -> BigQueryDataType | None:
+    """
+    Maps a Polars data type to the corresponding BigQuery data type.
+
+    Args:
+        polars_dtype (pl.DataType): The Polars data type to be mapped.
+
+    Returns:
+        BigQueryDataType | None: The corresponding BigQuery data type, or None if no mapping is found.
+    """
+    TYPE_MAPPING = {
+        (
+            pl.Int8,
+            pl.Int16,
+            pl.Int32,
+            pl.Int64,
+            pl.UInt8,
+            pl.UInt16,
+            pl.UInt32,
+            pl.UInt64,
+        ): BigQueryDataType.INTEGER,
+        (pl.Boolean, pl.Binary): BigQueryDataType.BOOLEAN,
+        (pl.Float32, pl.Float64, pl.Decimal): BigQueryDataType.FLOAT,
+        (pl.String, pl.Utf8, pl.Categorical, pl.Enum): BigQueryDataType.STRING,
+        (pl.Date): BigQueryDataType.DATE,
+        (pl.Time): BigQueryDataType.TIME,
+        (pl.Datetime): BigQueryDataType.DATETIME,
+    }
+    for polars_dtypes, bq_dtype in TYPE_MAPPING.items():
+        if polars_dtype in polars_dtypes:
+            return bq_dtype
+    return None
+
+
+def generate_bigquery_schema(df: pl.DataFrame) -> List[SchemaField]:
+    """
+    Generates a BigQuery schema from a Polars DataFrame.
+
+    Args:
+        df (pl.DataFrame): The Polars DataFrame to generate the schema from.
+
+    Returns:
+        List[SchemaField]: The BigQuery schema as a list of SchemaField objects.
+    """
+    schema = []
+    for column, dtype in df.schema.items():
+        val = df.select(column).row(0)[0]
+        mode = "REPEATED" if isinstance(val, list) else "NULLABLE"
+        if isinstance(val, dict) or (mode == "REPEATED" and isinstance(val[0], dict)):
+            fields = generate_bigquery_schema(pl.from_pandas(pd.json_normalize(val)))
+        else:
+            fields = ()
+        type = "RECORD" if fields else get_bigquery_dtype_from_polars_dtype(dtype)
+        schema.append(
+            SchemaField(
+                name=column,
+                field_type=type,
+                mode=mode,
+                fields=fields,
+            )
+        )
+    return schema
 
 
 def prettify_list(list: list, indent_size=4, initial_indent=0, seperator=",") -> str:
@@ -62,6 +150,13 @@ def load_file_gcs_to_bq(
     # Define GCS bucket prefix to prepend to GCS file path
     GCS_BUCKET_PREFIX = f"gs://{gcs_bucket_block.bucket}"
 
+    # Get BQ schema from DataFrame
+    logger.info("Generating BigQuery schema from DataFrame...")
+    bq_schema: List[SchemaField] = generate_bigquery_schema(
+        pl.read_parquet(f"{GCS_BUCKET_PREFIX}/{gcs_file}")
+    )
+    logger.info(f"BigQuery schema: {bq_schema}")
+
     # Load file to BigQuery table
     logger.info(f"Loading {gcs_file} to BQ Warehouse...")
     bigquery_load_cloud_storage(
@@ -76,6 +171,7 @@ def load_file_gcs_to_bq(
             "create_disposition": CreateDisposition.CREATE_IF_NEEDED,
             "write_disposition": WriteDisposition.WRITE_APPEND,
         },
+        schema=bq_schema,
     )
     logger.info("Finished loading file to BQ Warehouse.")
 
