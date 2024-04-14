@@ -255,7 +255,7 @@ def elt_single_title_cdc_stats(
         "DataFrames..."
     )
     for cdc_game_format, stats_df in cdc_stats.items():
-        cdc_stats[cdc_game_format] = clean_cdc_stats(stats_df)
+        cdc_stats[cdc_game_format] = clean_cdc_stats(stats_df, cdc_game_format)
     logger.info("Cleaned Chess.com game statistics DataFrames.")
     for cdc_game_format, stats_df in cdc_stats.items():
         logger.info(
