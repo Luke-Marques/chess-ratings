@@ -300,6 +300,7 @@ def elt_fide_ratings(
             gcs_bucket_block,
             store_local,
             overwrite_existing,
+            return_state=True,
         )
         logger.info(
             f"Finished ELT sub-flow for {year}-{month} {fide_game_format.value}."

@@ -361,6 +361,7 @@ def elt_cdc_stats(
             overwrite_existing,
             bq_dataset_name,
             bq_table_name_prefix,
+            return_state=True,
         )
         logger.info(
             f"Completed Chess.com player game statistics ELT sub-flow for Chess.com "

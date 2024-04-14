@@ -265,6 +265,7 @@ def elt_cdc_profiles(
             overwrite_existing,
             bq_dataset_name,
             bq_table_name,
+            return_state=True,
         )
         logger.info(
             f"Finished Chess.com player profiles ELT sub-flow for Chess.com players "
