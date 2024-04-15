@@ -281,6 +281,7 @@ def elt_single_title_cdc_stats(
             overwrite_existing,
             bq_dataset_name,
             bq_table_name_prefix,
+            return_state=True,
         )
         logger.info(
             f"Completed LOAD sub-flow for {chess_title.value} titled Chess.com "
