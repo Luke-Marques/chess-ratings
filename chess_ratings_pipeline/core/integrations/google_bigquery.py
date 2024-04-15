@@ -155,7 +155,9 @@ def load_file_gcs_to_bq(
     GCS_BUCKET_PREFIX = f"gs://{gcs_bucket_block.bucket}"
 
     # Get BQ schema for data in GCS file
-    bq_schema: List[SchemaField] = generate_bigquery_schema(pl.read_parquet(gcs_file))
+    bq_schema: List[SchemaField] = generate_bigquery_schema(
+        pl.read_parquet(f"{GCS_BUCKET_PREFIX}/{gcs_file}")
+    )
 
     # Load file to BigQuery table
     logger.info(f"Loading {gcs_file} to BQ Warehouse...")
