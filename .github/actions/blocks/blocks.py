@@ -20,11 +20,12 @@ parser.add_argument("-n", "--block-name", default="default")
 parser.add_argument("-g", "--gcp-creds-block-name", default="default")
 parser.add_argument("-p", "--bucket-name", default="default")
 parser.add_argument("-i", "--image")
-parser.add_argument("--region", default="europe-north1")
+parser.add_argument("--region", default="europe-west1")
 args = parser.parse_args()
 
 # load GCP credentials block
 gcp_credentials = GcpCredentials.load(args.gcp_creds_block_name)
+print(gcp_credentials)
 
 # create GitHub block and save to Prefect Cloud
 github_block = GitHub(repository=args.repo, reference=args.branch)
@@ -35,10 +36,11 @@ cloud_run_job_block = CloudRunJob(
     image=args.image,
     region=args.region,
     credentials=gcp_credentials,
-    cpu=2,
-    timeout=3600,
-    memory=8,
+    cpu=8,
+    memory=32,
     memory_unit="Gi",
+    timeout=3600,
+    max_retries=0,
 )
 cloud_run_job_block.save(args.block_name, overwrite=True)
 

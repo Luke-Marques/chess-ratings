@@ -10,14 +10,14 @@ inputs:
   prefect_api_url:
     description: "Prefect Cloud API URL"
     required: true
-  gcp_credentials_block_name:
+  block_name:
+    description: "Name of the GitHub, CloudRunJob, and GcsBucket Block"
+    required: false
+    default: "chess-ratings-dev" # change to your gcp-credentials prefect block name
+  gcp_creds_block_name:
     description: "Name of the GCP Credentials Block"
     required: false
     default: "gcp-creds-chess-ratings"
-  block_name:
-    description: "Name of the GitHub, CloudRunJob Block"
-    required: false
-    default: "chess-ratings" # change to your gcp-credentials prefect block name
   gcs_bucket_name:
     description: "Name of GCP GCS Bucket to use for bucket block"
     required: false
@@ -25,11 +25,11 @@ inputs:
   image_uri:
     description: "Name of the AR image URI"
     required: true
-    default: "europe-north1-docker.pkg.dev/prefect-community/prefect/deployments:latest"
+    default: "europe-west1-docker.pkg.dev/prefect-community/prefect/deployments:latest"
   region:
     description: GCP region
     required: true
-    default: "europe-north1"
+    default: "europe-west1"
   python_version:
     description: "Python version"
     required: false
@@ -50,7 +50,7 @@ runs:
         installer-parallel: true
     - name: Install dependencies
       shell: bash
-      run: poetry install --no-interaction --no-root
+      run: poetry install --no-interaction
 
     - id: login-prefect
       run: |
@@ -59,5 +59,5 @@ runs:
       shell: bash
 
     - id: create-blocks
-      run: poetry run python ${{ github.action_path }}/blocks.py -b $GITHUB_REF_NAME -r $GITHUB_SERVER_URL/$GITHUB_REPOSITORY -n ${{ inputs.block_name }} -i ${{ inputs.image_uri }} --region ${{ inputs.region }} -g ${{ inputs.gcp_credentials_block_name }} -p ${{ inputs.gcs_bucket_name }}
+      run: poetry run python ${{ github.action_path }}/blocks.py -b $GITHUB_REF_NAME -r $GITHUB_SERVER_URL/$GITHUB_REPOSITORY -n ${{ inputs.block_name }} -i ${{ inputs.image_uri }} --region ${{ inputs.region }} -g ${{ inputs.gcp_creds_block_name }} -p ${{ inputs.gcs_bucket_name }}
       shell: bash

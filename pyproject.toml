@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "prefect-gcp-template"
+name = "chess_ratings_pipeline"
 version = "0.1.0"
 description = ""
 authors = ["Luke Marques <74625391+Luke-Marques@users.noreply.github.com>"]
@@ -16,6 +16,11 @@ patito = "^0.6.1"
 lxml = "^5.1.0"
 pyarrow = "^15.0.2"
 tqdm = "^4.66.2"
+icecream = "^2.1.3"
+google-cloud-bigquery = "^3.20.1"
+dbt = "^1.0.0.37.8"
+dbt-core = "^1.7.11"
+dbt-bigquery = "^1.7.7"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.3.2"

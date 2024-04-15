@@ -9,7 +9,7 @@ variable "project" {
 
 variable "region" {
   description = "Region for GCP resources. Choose as per your location: https://cloud.google.com/about/locations"
-  default     = "europe-north1"
+  default     = "europe-west1"
   type        = string
 }
 
@@ -27,11 +27,5 @@ variable "storage_class" {
 variable "BQ_DATASET" {
   description = "BigQuery Dataset that raw data (from GCS) will be written to"
   type        = string
-  default     = "chess_ratings_data"
-}
-
-variable "TABLE_NAME" {
-  description = "BigQuery Table that raw data (from GCS) will be written to"
-  type        = string
-  default     = "chess_ratings_table"
+  default     = "landing"
 }
