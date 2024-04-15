@@ -36,7 +36,7 @@ def generate_load_single_cdc_game_format_stats_flow_name() -> str:
     parameters = flow_run.parameters
     chess_title: ChessTitle = parameters["chess_title"]
     cdc_game_format: str = parameters["cdc_game_format"]
-    name = f"{flow_name}-{chess_title.name}-{cdc_game_format}"
+    name = f"{flow_name}-{chess_title.name.lower()}-{cdc_game_format}"
     return name
 
 
@@ -51,7 +51,7 @@ def generate_elt_single_title_cdc_stats_flow_name() -> str:
     flow_name = flow_run.flow_name
     parameters = flow_run.parameters
     chess_title: ChessTitle = parameters["chess_title"]
-    name = f"{flow_name}-{chess_title.value}"
+    name = f"{flow_name}-{chess_title.name.lower()}"
     return name
 
 
