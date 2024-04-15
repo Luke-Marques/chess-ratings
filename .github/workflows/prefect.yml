@@ -1,16 +1,16 @@
-name: "Prefect deployment complete workflow."
+name: Prefect Deployment Pipeline for GCP
 on:
   workflow_dispatch:
     inputs:
       region:
         description: GCP region
         required: true
-        default: 'europe-north1'
+        default: 'europe-west1'
         type: string
       zone:
         description: Zone in the selected GCP region
         required: true
-        default: 'europe-north1-b'
+        default: 'europe-west1-b'
         type: string
       artifact_repository:
         description: Artifact Registry Repository
@@ -25,7 +25,7 @@ on:
       machine_type:
         description: GCP Compute Engine instance type
         required: true
-        default: 'e2-highmem-4'
+        default: 'e2-micro'
         type: string
       block_name:
         description: 'GitHub and CloudRunJob block name'
@@ -51,7 +51,7 @@ jobs:
   deploy-container:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: deploy-container
         uses: ./.github/actions/deploy-container
         with:
@@ -78,9 +78,9 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: set-matrix
-        run: echo "matrix=$(ls prefect/flows/*.py | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+        run: echo "matrix=$(ls chess_ratings_pipeline/flows/*.py | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   deploy:
     needs: list-flows
@@ -89,7 +89,7 @@ jobs:
       matrix:
         flows: ${{ fromJson(needs.list-flows.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: flow  # example output: "flows/hello.py:hello"
         run: |
           export FLOW_NAME=$(basename ${{ matrix.flows }} .py)

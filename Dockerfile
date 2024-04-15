@@ -6,7 +6,7 @@ RUN pip install --upgrade pip
 RUN pip install poetry==1.7.1
 
 # Copy only requirements to cache them in docker layer
-COPY prefect/flows/ /opt/chess-ratings/prefect/flows/
+COPY chess_ratings_pipeline/flows/ /opt/chess-ratings/chess_ratings_pipeline/flows/
 COPY poetry.lock pyproject.toml /opt/chess-ratings/
 WORKDIR /opt/chess-ratings/
 

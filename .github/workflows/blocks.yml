@@ -1,15 +1,11 @@
-name: Prefect Blocks
+name: Deploy Prefect Blocks
 on:
   workflow_dispatch:
     inputs:
-      github_block_name:
-        description: 'Name of the GitHub block'
+      block_name:
+        description: 'Name of the GitHub/CloudRunJob/GcsBucket block'
         required: false
-        default: "chess-ratings"
-      cloudrun_block_name:
-        description: 'Name of the CloudRunJob block'
-        required: false
-        default: "chess-ratings"
+        default: "chess-ratings-dev"
       gcp_creds_block_name:
         description: 'Name of the GcpCredentials block'
         required: false
@@ -17,11 +13,11 @@ on:
       image_uri:
         description: 'Name of the AR image URI'
         required: true
-        default: "europe-north1-docker.pkg.dev/prefect-community/prefect/deployments:latest"
+        default: "europe-west1-docker.pkg.dev/prefect-community/prefect/deployments:latest"
       region:
         description: GCP region
         required: true
-        default: 'europe-north1'
+        default: 'europe-west1'
       python_version:
         description: 'Python version'
         required: false
@@ -30,14 +26,13 @@ jobs:
   blocks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: create-blocks
         uses: ./.github/actions/blocks
         with:
           prefect_api_key: ${{ secrets.PREFECT_API_KEY }}
           prefect_api_url: ${{ secrets.PREFECT_API_URL }}
-          github_block_name: ${{ github.event.inputs.github_block_name }} # optional
-          cloudrun_block_name: ${{ github.event.inputs.cloudrun_block_name }} # optional
+          block_name: ${{ github.event.inputs.block_name }} # optional
           gcp_creds_block_name: ${{ github.event.inputs.gcp_creds_block_name }} # optional
           image_uri: ${{ github.event.inputs.image_uri }}  # optional
           region: ${{ github.event.inputs.region }}  # optional
