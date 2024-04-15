@@ -130,7 +130,6 @@ def prettify_list(list: list, indent_size=4, initial_indent=0, seperator=",") ->
 @flow(log_prints=True, retries=3, timeout_seconds=500)
 def load_file_gcs_to_bq(
     gcs_file: Path,
-    bq_schema: List[SchemaField],
     gcp_credentials_block: GcpCredentials,
     gcs_bucket_block: GcsBucket,
     dataset: str,
@@ -154,6 +153,9 @@ def load_file_gcs_to_bq(
 
     # Define GCS bucket prefix to prepend to GCS file path
     GCS_BUCKET_PREFIX = f"gs://{gcs_bucket_block.bucket}"
+
+    # Get BQ schema for data in GCS file
+    bq_schema: List[SchemaField] = generate_bigquery_schema(pl.read_parquet(gcs_file))
 
     # Load file to BigQuery table
     logger.info(f"Loading {gcs_file} to BQ Warehouse...")

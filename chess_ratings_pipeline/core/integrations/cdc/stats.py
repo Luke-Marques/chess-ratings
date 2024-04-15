@@ -160,55 +160,48 @@ def clean_cdc_stats(stats: pl.DataFrame, cdc_game_format: str) -> pl.DataFrame:
     # Define schema of columns Polars data types for DataFrame, dependent on game format
     if cdc_game_format in ["tactics", "lessons"]:
         schema = {
-            "highest_rating": pl.Int16,
+            "highest_rating": pl.Float32,
             "highest_date": pl.Int64,
-            "lowest_rating": pl.Int16,
+            "lowest_rating": pl.Float32,
             "lowest_date": pl.Int64,
         }
     elif cdc_game_format == "puzzle_rush":
         schema = {
-            "daily_total_attempts": pl.Int16,
-            "daily_score": pl.Int16,
-            "best_total_attempts": pl.Int16,
-            "best_score": pl.Int16,
+            "daily_total_attempts": pl.Float32,
+            "daily_score": pl.Float32,
+            "best_total_attempts": pl.Float32,
+            "best_score": pl.Float32,
         }
     else:
         schema = {
             "last_date": pl.Int64,
-            "last_rating": pl.Int16,
-            "last_rd": pl.Int16,
+            "last_rating": pl.Float32,
+            "last_rd": pl.Float32,
             "best_date": pl.Int64,
-            "best_rating": pl.Int16,
+            "best_rating": pl.Float32,
             "best_game": pl.Utf8,
-            "record_win": pl.Int16,
-            "record_loss": pl.Int16,
-            "record_draw": pl.Int16,
+            "record_win": pl.Float32,
+            "record_loss": pl.Float32,
+            "record_draw": pl.Float32,
             "record_time_per_move": pl.Float64,
             "record_timeout_percent": pl.Float64,
-            "tournament_count": pl.Int16,
-            "tournament_withdraw": pl.Int16,
-            "tournament_points": pl.Int16,
-            "tournament_highest_finish": pl.Int16,
+            "tournament_count": pl.Float32,
+            "tournament_withdraw": pl.Float32,
+            "tournament_points": pl.Float32,
+            "tournament_highest_finish": pl.Float32,
         }
-
-    # Ensure all data fields for game format exist as columns (empty if not present)
-    stats = stats.with_columns(
-        [pl.lit(None).alias(col) for col in schema.keys() if col not in stats.columns]
-    )
 
     # Ensure columns have correct data types
     stats = stats.with_columns(
         [
             pl.from_epoch(pl.col(col)) if "date" in col else pl.col(col).cast(dtype)
             for col, dtype in schema.items()
+            if col in stats.columns
         ]
     )
 
     # Add column containing todays date, to show date data was scraped
     stats = stats.with_columns(pl.lit(datetime.today()).alias("scrape_date"))
-
-    # Remove columns with `tournament` in the name as they are not relevant
-    stats = stats.drop([col for col in stats.columns if "tournament" in col.lower()])
 
     # Gather DataFrame
     stats = stats.collect()

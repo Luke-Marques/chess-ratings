@@ -107,15 +107,6 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
         "fide": pl.Int16,
     }
 
-    # Ensure required columns are present in DataFrame
-    profiles = profiles.with_columns(
-        [
-            pl.lit(None).alias(col)
-            for col in schema.keys()
-            if col not in profiles.columns
-        ]
-    )
-
     # Convert columns to data types specified in schema
     profiles = profiles.with_columns(
         [
@@ -123,6 +114,7 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
             if col in ["joined", "last_online"]
             else pl.col(col).cast(dtype)
             for col, dtype in schema.items()
+            if col in profiles.columns
         ]
     )
 
@@ -132,15 +124,14 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
             "avatar": "avatar_url",
             "@id": "api_url",
             "url": "profile_url",
-            "followers": "follower_count",
         }
     )
 
-    # Drop duplicate rows and gather DataFrame
-    profiles = profiles.unique().collect()
-
     # Add column of todays date/time
     profiles = profiles.with_columns(pl.lit(datetime.now()).alias("scrape_datetime"))
+
+    # Drop duplicate rows and gather DataFrame
+    profiles = profiles.unique().collect()
 
     # Display cleaned DataFrame and Schema
     logger.info("Finished cleaning Chess.com player profiles DataFrame.")
