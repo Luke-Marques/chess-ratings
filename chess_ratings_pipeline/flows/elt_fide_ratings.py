@@ -29,7 +29,6 @@ from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
 
 def generate_elt_single_fide_ratings_dataset_flow_name() -> str:
     """
-    Generates the name for the elt_single_fide_ratings_dataset flow based on the
     provided parameters to the flow.
 
     Returns:
