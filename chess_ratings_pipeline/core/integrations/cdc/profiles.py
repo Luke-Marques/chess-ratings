@@ -3,15 +3,15 @@ from pathlib import Path
 from typing import Dict, List
 
 import polars as pl
+import requests
+from prefect import flow, task
+from prefect.logging import get_run_logger
+
 from chess_ratings_pipeline.core.integrations.cdc.api import ChessDotComAPI
 from chess_ratings_pipeline.core.integrations.cdc.chess_title import ChessTitle
 from chess_ratings_pipeline.core.integrations.cdc.usernames import (
     fetch_titled_cdc_usernames,
 )
-
-from prefect import flow, task
-from prefect.logging import get_run_logger
-import requests
 
 
 @task(retries=3, log_prints=True)

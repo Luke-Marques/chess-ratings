@@ -4,6 +4,7 @@ from typing import Dict, List
 
 import pandas as pd
 import polars as pl
+import requests
 from prefect import flow, task
 from prefect.logging import get_run_logger
 
@@ -44,10 +45,16 @@ def fetch_all_game_formats_stats(
             f"Fetching game statistics for player {index+1:_} of {len(usernames):_} "
             f"({username})"
         )
-        player_id: int = ChessDotComAPI().fetch_player_id(username)
-        player_stats: Dict = ChessDotComAPI().fetch_player_stats(username)
-        player_stats["player_id"] = player_id
-        all_game_formats_stats.append(player_stats)
+        try:
+            player_id: int = ChessDotComAPI().fetch_player_id(username)
+            player_stats: Dict = ChessDotComAPI().fetch_player_stats(username)
+            player_stats["player_id"] = player_id
+            all_game_formats_stats.append(player_stats)
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                logger.warning(f"HttpError 404 for {username = }.")
+            else:
+                raise
     logger.info(
         f"Finished fetching Chess.com game statistics for {len(usernames):_} "
         f"{chess_title.value} titled players."
