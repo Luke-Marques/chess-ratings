@@ -11,6 +11,7 @@ from chess_ratings_pipeline.core.integrations.cdc.usernames import (
 
 from prefect import flow, task
 from prefect.logging import get_run_logger
+import requests
 
 
 @task(retries=3, log_prints=True)
@@ -34,7 +35,13 @@ def fetch_cdc_profiles(usernames: List[str]) -> dict:
     profiles = []
     for index, username in enumerate(usernames):
         logger.info(f"Player {index+1:_} of {len(usernames):_} ({username})")
-        profiles.append(ChessDotComAPI().fetch_player_profile(username))
+        try:
+            profiles.append(ChessDotComAPI().fetch_player_profile(username))
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                logger.warning(f"HttpError 404 for {username = }.")
+            else:
+                raise
     return profiles
 
 
