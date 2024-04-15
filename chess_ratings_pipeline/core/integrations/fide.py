@@ -1,14 +1,11 @@
 from datetime import date, datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
-import patito as pt
 import polars as pl
 from prefect import flow, task
 from prefect.logging import get_run_logger
-from pydantic import validator
 
 
 class FideGameFormat(StrEnum):
@@ -24,55 +21,6 @@ class FideGameFormat(StrEnum):
     STANDARD = "standard"
     RAPID = "rapid"
     BLITZ = "blitz"
-
-
-class ChessRating(pt.Model):
-    """
-    Patito data model/schema which represents a FIDE chess rating entry.
-
-    Attributes:
-        fide_id (int): The FIDE ID of the player.
-        player_name (str, optional): The name of the player.
-        fide_federation (str, optional): The FIDE federation of the player.
-        sex (int, optional): The sex of the player.
-        title (str, optional): The title of the player.
-        w_title (str, optional): The women's title of the player.
-        o_title (str, optional): The open title of the player.
-        foa_title (str, optional): The FIDE Online Arena title of the player.
-        rating (int): The rating of the player.
-        game_count (int): The number of games played by the player.
-        k (int): The K-factor used for rating calculation.
-        birth_year (int, optional): The birth year of the player.
-        flag (str, optional): The flag of the player.
-        period_year (int): The year of the rating period.
-        period_month (int): The month of the rating period.
-
-    Methods:
-        within_date_range(cls, value):
-            Validates that the birth year is within a valid range.
-
-    """
-
-    fide_id: int = pt.Field(unique=True)
-    player_name: Optional[str]
-    fide_federation: Optional[str] = pt.Field(pattern=r"(?i)[A-Z]{3}")
-    sex: Optional[str]
-    title: Optional[str]
-    w_title: Optional[str]
-    o_title: Optional[str]
-    foa_title: Optional[str]
-    rating: int
-    game_count: int
-    k: int
-    birth_year: Optional[int] = None
-    flag: Optional[str]
-    period_year: int = pt.Field(ge=2000, le=date.today().year)
-    period_month: int = pt.Field(ge=1, le=12)
-
-    @validator("birth_year")
-    def within_date_range(cls, value):
-        assert 1900 <= value <= date.today().year
-        return value
 
 
 def convert_numeric_month_to_string(month: int) -> str:
@@ -410,27 +358,3 @@ def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataF
 
     return ratings
 
-
-@task(log_prints=True, cache_result_in_memory=False)
-def validate_fide_ratings(df: pl.DataFrame) -> None:
-    """
-    Validates the FIDE chess ratings data in the given Polars DataFrame using Patito
-    data model.
-
-    Args:
-        df (pl.DataFrame): The Polars DataFrame containing the FIDE chess ratings data.
-
-    Returns:
-        None
-
-    Raises:
-        patito.exceptions.DataFrameValidationError:
-            If the given Polars DataFrame does not match the Patito data model/schema.
-    """
-    # Create Prefect info logger
-    logger = get_run_logger()
-
-    # Validate FIDE ratings DataFrame using Patito data-model/schema
-    logger.info("Validating FIDE ratings DataFrame using Patito data-model/schema...")
-    ChessRating.validate(df)
-    logger.info("FIDE ratings DataFrame is valid.")

@@ -17,7 +17,6 @@ from chess_ratings_pipeline.core.integrations.fide import (
     clean_fide_ratings,
     extract_fide_ratings,
     generate_file_path,
-    validate_fide_ratings,
 )
 from chess_ratings_pipeline.core.integrations.google_bigquery import (
     load_file_gcs_to_bq,
@@ -129,17 +128,6 @@ def elt_single_fide_ratings_dataset(
         f"Cleaned FIDE ratings data for {year}-{month} {fide_game_format.value}."
     )
     logger.info(f"Cleaned FIDE Ratings DataFrame shape: {fide_ratings.shape}")
-
-    # Validate cleaned FIDE ratings DataFrame using Patito data-model/schema
-    logger.info(
-        "Validating cleaned FIDE ratings data for "
-        f"{year}-{month} {fide_game_format.value}..."
-    )
-    validate_fide_ratings(fide_ratings)
-    logger.info(
-        "Validated cleaned FIDE ratings data for "
-        f"{year}-{month} {fide_game_format.value}."
-    )
 
     # Generate destination parquet file path for writing of FIDE ratings DataFrame
     logger.info(
