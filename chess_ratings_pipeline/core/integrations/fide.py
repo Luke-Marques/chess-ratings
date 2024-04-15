@@ -319,11 +319,7 @@ def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataF
             if col in ratings.columns
         ]
     )
-
-    # Add foa_title column if it does not exist
-    if "foa_title" not in ratings.columns:
-        ratings = ratings.with_columns(pl.lit(None).alias("foa_title"))
-
+    
     # Rename columns
     ratings = ratings.rename(
         {
