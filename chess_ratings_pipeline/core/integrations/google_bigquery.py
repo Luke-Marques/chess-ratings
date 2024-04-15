@@ -5,12 +5,7 @@ from typing import Iterable, List, Optional
 
 import pandas as pd
 import polars as pl
-from google.cloud.bigquery import (
-    CreateDisposition,
-    SchemaField,
-    SourceFormat,
-    WriteDisposition,
-)
+import google.cloud.bigquery as bigquery
 from prefect import flow, get_run_logger
 from prefect_gcp.bigquery import bigquery_load_cloud_storage
 from prefect_gcp.cloud_storage import GcsBucket
@@ -70,7 +65,7 @@ def convert_polars_dtype_to_bigquery_field_type(
     return None
 
 
-def generate_bigquery_schema(df: pl.DataFrame) -> List[SchemaField]:
+def generate_bigquery_schema(df: pl.DataFrame) -> List[bigquery.SchemaField]:
     """
     Generates a BigQuery schema from a Polars DataFrame.
 
@@ -78,7 +73,7 @@ def generate_bigquery_schema(df: pl.DataFrame) -> List[SchemaField]:
         df (pl.DataFrame): The Polars DataFrame to generate the schema from.
 
     Returns:
-        List[SchemaField]: The BigQuery schema as a list of SchemaField objects.
+        List[bigquery.SchemaField]: The BigQuery schema as a list of bigquery.SchemaField objects.
     """
     schema = []
     for column, dtype in df.schema.items():
@@ -92,7 +87,7 @@ def generate_bigquery_schema(df: pl.DataFrame) -> List[SchemaField]:
             "RECORD" if fields else convert_polars_dtype_to_bigquery_field_type(dtype)
         )
         schema.append(
-            SchemaField(
+            bigquery.SchemaField(
                 name=column,
                 field_type=type,
                 mode=mode,
@@ -155,7 +150,7 @@ def load_file_gcs_to_bq(
     GCS_BUCKET_PREFIX = f"gs://{gcs_bucket_block.bucket}"
 
     # Get BQ schema for data in GCS file
-    bq_schema: List[SchemaField] = generate_bigquery_schema(
+    bq_schema: List[bigquery.SchemaField] = generate_bigquery_schema(
         pl.read_parquet(f"{GCS_BUCKET_PREFIX}/{gcs_file}")
     )
 
@@ -169,9 +164,10 @@ def load_file_gcs_to_bq(
         location=location,
         job_config={
             "autodetect": True,
-            "source_format": SourceFormat.PARQUET,
-            "create_disposition": CreateDisposition.CREATE_IF_NEEDED,
-            "write_disposition": WriteDisposition.WRITE_APPEND,
+            "source_format": bigquery.SourceFormat.PARQUET,
+            "create_disposition": bigquery.CreateDisposition.CREATE_IF_NEEDED,
+            "write_disposition": bigquery.WriteDisposition.WRITE_APPEND,
+            "schema_update_options": [bigquery.SchemaUpdateOption.ALLOW_FIELD_ADDITION],
         },
         schema=bq_schema,
     )
