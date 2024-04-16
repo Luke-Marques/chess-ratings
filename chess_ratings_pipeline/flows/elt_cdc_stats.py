@@ -14,6 +14,7 @@ from chess_ratings_pipeline.core.integrations.cdc.stats import (
     clean_cdc_stats,
     extract_titled_cdc_stats,
     generate_cdc_stats_file_path,
+    generate_bq_table_name,
 )
 from chess_ratings_pipeline.core.integrations.google_bigquery import (
     load_file_gcs_to_bq,
@@ -159,8 +160,10 @@ def load_single_cdc_game_format_stats(
         write_dataframe_to_local(stats_df, destination, overwrite_existing)
         logger.info("Finished writing game statistics locally.")
 
+    # Generate BQ table name
+    bq_table_name: str = generate_bq_table_name(bq_table_name_prefix, cdc_game_format)
+
     # Load player game statistics data from GCS bucket to BigQuery
-    bq_table_name = f"{bq_table_name_prefix}_{cdc_game_format}"
     logger.info(
         f"Loading cleaned Chess.com {chess_title.value} titled player "
         f"{cdc_game_format} statistics data to BigQuery data warehouse "
