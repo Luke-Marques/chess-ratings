@@ -210,6 +210,14 @@ def clean_cdc_stats(stats: pl.DataFrame, cdc_game_format: str) -> pl.DataFrame:
     # Add column containing todays date, to show date data was scraped
     stats = stats.with_columns(pl.lit(datetime.today()).alias("scrape_date"))
 
+    # If game format is of type "chess", add column indicating the chess game type and
+    # time control
+    if "chess" in cdc_game_format:
+        stats = stats.with_columns(
+            pl.lit(cdc_game_format.split("_")[0]).alias("game_type"),
+            pl.lit(cdc_game_format.split("_")[1]).alias("time_control"),
+        )
+
     # Gather DataFrame
     stats = stats.collect()
 
@@ -330,3 +338,25 @@ def generate_cdc_stats_file_path(
     )
 
     return file_path
+
+
+@task(log_prints=True)
+def generate_bq_table_name(bq_table_name_prefix: str, cdc_game_format: str) -> str:
+    """
+    Prefect task which generates a BigQuery table name for Chess.com players' game
+    statistics data.
+
+    Args:
+        chess_title (ChessTitle):
+            The title abbreviation to filter the players by.
+        cdc_game_format (str):
+            The Chess.com game format to generate the table name for.
+
+    Returns:
+        str: The BigQuery table name for the player game stats.
+    """
+    if "chess" in cdc_game_format:
+        table_name = f"{bq_table_name_prefix}_chess"
+    else:
+        table_name = f"{bq_table_name_prefix}_{cdc_game_format}"
+    return table_name
