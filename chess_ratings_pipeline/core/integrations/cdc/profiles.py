@@ -91,9 +91,6 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
     logger = get_run_logger()
     logger.info("Cleaning Chess.com player profiles DataFrame...")
 
-    # Convert DataFrame to LazyFrame
-    profiles = profiles.lazy()
-
     # Define schema of columns Polars data types for DataFrame
     schema = {
         "avatar": pl.Utf8,
@@ -138,7 +135,7 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
     profiles = profiles.with_columns(pl.lit(datetime.now()).alias("scrape_datetime"))
 
     # Drop duplicate rows and gather DataFrame
-    profiles = profiles.unique().collect()
+    profiles = profiles.unique()
 
     # Display cleaned DataFrame and Schema
     logger.info("Finished cleaning Chess.com player profiles DataFrame.")
