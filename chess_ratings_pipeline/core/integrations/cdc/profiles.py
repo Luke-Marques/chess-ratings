@@ -139,7 +139,7 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
 
     # Select only those columns which appear in schema, and scrape_datetime
     profiles = profiles.select(
-        [col for col in schema.keys() if col in profiles.columns], "scrape_datetime"
+        [col for col in schema.keys() if col in profiles.columns] + ["scrape_datetime"]
     )
 
     # Drop duplicate rows and gather DataFrame
