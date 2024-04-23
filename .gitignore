@@ -159,3 +159,6 @@ cython_debug/
 
 # Terraform
 *.terraform*
+
+# VS Code settings
+.vscode
