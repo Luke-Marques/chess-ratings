@@ -5,11 +5,12 @@ from typing import Iterable, List, Optional
 
 import pandas as pd
 import polars as pl
-import google.cloud.bigquery as bigquery
+from google.cloud import bigquery
 from prefect import flow, get_run_logger
 from prefect_gcp.bigquery import bigquery_load_cloud_storage
 from prefect_gcp.cloud_storage import GcsBucket
 from prefect_gcp.credentials import GcpCredentials
+from google.cloud.bigquery.external_config import ExternalConfig
 
 
 class BigQueryDataType(StrEnum):
@@ -146,8 +147,9 @@ def load_file_gcs_to_bq(
         location (str): {location}"""
     logger.info(start_message)
 
-    # Define GCS bucket prefix to prepend to GCS file path
+    # Define GCS source file uri
     GCS_BUCKET_PREFIX = f"gs://{gcs_bucket_block.bucket}"
+    source_uri = f"{GCS_BUCKET_PREFIX}/{gcs_file}"
 
     # Get BQ schema for data in GCS file
     bq_schema: List[bigquery.SchemaField] = generate_bigquery_schema(
@@ -159,7 +161,7 @@ def load_file_gcs_to_bq(
     bigquery_load_cloud_storage(
         dataset=dataset,
         table=table_name,
-        uri=f"{GCS_BUCKET_PREFIX}/{gcs_file}",
+        uri=source_uri,
         gcp_credentials=gcp_credentials_block,
         location=location,
         job_config={
@@ -168,6 +170,7 @@ def load_file_gcs_to_bq(
             "create_disposition": bigquery.CreateDisposition.CREATE_IF_NEEDED,
             "write_disposition": bigquery.WriteDisposition.WRITE_APPEND,
             "schema_update_options": [bigquery.SchemaUpdateOption.ALLOW_FIELD_ADDITION],
+            "table_definitions": {f"{dataset}.{table_name}": ExternalConfig("PARQUET")},
         },
         schema=bq_schema,
     )
