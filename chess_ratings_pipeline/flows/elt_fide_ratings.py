@@ -18,16 +18,16 @@ from chess_ratings_pipeline.core.integrations.fide import (
     extract_fide_ratings,
     generate_file_path,
 )
-from chess_ratings_pipeline.core.integrations.google_bigquery import (
-    create_external_bq_table_from_gcs_files,
-)
 from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
     write_dataframe_to_gcs,
     write_dataframe_to_local,
 )
+from chess_ratings_pipeline.core.integrations.google_bigquery import (
+    create_external_bq_table,
+)
 
 
-def generate_elt_single_fide_ratings_dataset_flow_name() -> str:
+def generate_extract_single_fide_ratings_dataset_flow_name() -> str:
     """
     provided parameters to the flow.
 
@@ -70,8 +70,11 @@ def generate_elt_fide_ratings_flow_name() -> str:
     return name
 
 
-@flow(flow_run_name=generate_elt_single_fide_ratings_dataset_flow_name, log_prints=True)
-def elt_single_fide_ratings_dataset(
+@flow(
+    flow_run_name=generate_extract_single_fide_ratings_dataset_flow_name,
+    log_prints=True,
+)
+def extract_single_fide_ratings_dataset(
     year: int,
     month: int,
     fide_game_format: FideGameFormat,
@@ -85,7 +88,7 @@ def elt_single_fide_ratings_dataset(
 
     # Log flow start message
     start_time = datetime.now()
-    start_message = f"""Starting `elt_single_fide_ratings_dataset` sub-flow at {start_time} (local time).
+    start_message = f"""Starting `extract_single_fide_ratings_dataset` sub-flow at {start_time} (local time).
     Inputs:
         year (int): {year}
         month (int): {month}
@@ -163,8 +166,53 @@ def elt_single_fide_ratings_dataset(
     # Log flow end message
     end_time = datetime.now()
     time_taken: timedelta = end_time - start_time
-    end_message = f"""Finished `elt_single_fide_ratings_dataset` sub-flow at {start_time} (local time).
+    end_message = f"""Finished `extract_single_fide_ratings_dataset` sub-flow at {start_time} (local time).
         Time taken: {time_taken}"""
+    logger.info(end_message)
+
+
+@flow(log_prints=True)
+def load_fide_ratings_to_bq_external_table(
+    gcp_credentials_block: GcpCredentials,
+    gcs_bucket_block: GcsBucket,
+    project_id: str = "fide-chess-ratings",
+    bq_dataset_name: str = "fide",
+    bq_table_name: str = "landing_fide__ratings",
+) -> str:
+    # Create Prefect logger
+    logger = get_run_logger()
+
+    # Log flow start message
+    start_time = datetime.now()
+    start_message = f"Starting `create_fide_ratings_external_bq_table` flow at {start_time} (local time)."
+    logger.info(start_message)
+
+    # Get list of parent directories for FIDE ratings Parquet files in GCS bucket
+    dirs: List[Path] = [
+        generate_file_path(year=2000, month=1, game_format=gf).parent
+        for gf in list(FideGameFormat)
+    ]
+
+    # Define URI patterns for FIDE ratings Parquet files in GCS bucket
+    source_uris: List[str] = [
+        f"gs://{gcs_bucket_block.bucket}/{dir}/*.parquet" for dir in dirs
+    ]
+
+    # Create external BigQuery table from list of URIs if table does not already exist
+    create_external_bq_table(
+        source_uris=source_uris,
+        dataset=bq_dataset_name,
+        table=bq_table_name,
+        project_id=project_id,
+        gcp_credentials=gcp_credentials_block,
+        return_state=True,
+    )
+
+    # Log flow end message
+    end_time = datetime.now()
+    time_taken: timedelta = end_time - start_time
+    end_message = f"""Finished `create_fide_ratings_external_bq_table` flow at {end_time} (local time).
+        Time taken: {time_taken}."""
     logger.info(end_message)
 
 
@@ -261,7 +309,7 @@ def elt_fide_ratings(
             f"{fide_game_format.value}, dataset {index+1} of "
             f"{len(date_game_format_combinations)}..."
         )
-        elt_single_fide_ratings_dataset(
+        extract_single_fide_ratings_dataset(
             year,
             month,
             fide_game_format,
@@ -275,25 +323,18 @@ def elt_fide_ratings(
             f"Finished extraction sub-flow for {year}-{month} {fide_game_format.value}."
         )
 
-    # Ensure external BQ table pointing to FIDE ratings files exists
+    # Load FIDE ratings data to BigQuery external table
     logger.info(
-        f"Ensuring external BigQuery table {bq_dataset_name}.{bq_table_name} exists..."
+        f"Loading FIDE ratings data to BigQuery external table `{bq_dataset_name}.{bq_table_name}`..."
     )
-    gcs_file_uri_patterns = [
-        f"gs://{gcs_bucket_block.bucket}/data/fide_ratings/{game_format}/*.parquet"
-        for game_format in list(FideGameFormat)
-    ]
-    create_external_bq_table_from_gcs_files(
-        gcs_file_uris=gcs_file_uri_patterns,
-        dataset=bq_dataset_name,
-        table=bq_table_name,
-        gcp_credentials=gcp_credentials_block,
-        project="fide-chess-ratings",
+    load_fide_ratings_to_bq_external_table(
+        gcp_credentials_block,
+        gcs_bucket_block,
+        bq_dataset_name,
+        bq_table_name,
         return_state=True,
     )
-    logger.info(
-        f"External BigQuery table {bq_dataset_name}.{bq_table_name} created successfully."
-    )
+    logger.info("Finished loading FIDE ratings data to BigQuery external table.")
 
     # Log flow end message
     end_time = datetime.now()

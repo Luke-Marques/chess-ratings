@@ -240,8 +240,8 @@ def load_files_gcs_to_bq(
 
 
 @task(log_prints=True, cache_result_in_memory=False, persist_result=False)
-def create_external_bq_table_from_gcs_files(
-    gcs_file_uris: Iterable[str] | str,
+def create_external_bq_table(
+    source_uris: Iterable[str] | str,
     dataset: str,
     table: str,
     gcp_credentials: GcpCredentials,
@@ -250,7 +250,7 @@ def create_external_bq_table_from_gcs_files(
     location: str = "europe-west1",
     external_config: Optional["ExternalConfig"] = None,
     project: Optional[str] = "fide-chess-ratings",
-    gcs_file_format: str = "PARQUET",
+    source_format: str = "PARQUET",
 ) -> None:
     # Create Prefect info logger
     logger = get_run_logger()
@@ -259,30 +259,31 @@ def create_external_bq_table_from_gcs_files(
     start_time = datetime.now()
     start_message = f"""Starting `create_external_bq_table_from_gcs_files` flow at {start_time} (local time).
     Inputs:
-        gcs_file_uris (Iterable[str] | str): {gcs_file_uris}
+        source_uris (Iterable[str] | str): {source_uris}
         dataset (str): {dataset}
         table (str): {table}
         gcp_credentials (GcpCredentials): {gcp_credentials}
         clustering_fields (List[str]): {clustering_fields}
         time_partitioning (TimePartitioning): {time_partitioning}
-        project (Optional[str]): {project}
         location (str): {location}
-        external_config (Optional[ExternalConfig]): {external_config}"""
+        external_config (ExternalConfig): {external_config}
+        project (str): {project}
+        source_format (str): {source_format}"""
     logger.info(start_message)
 
     # Convert single URI to list
-    if isinstance(gcs_file_uris, str):
-        gcs_file_uris = [gcs_file_uris]
+    if isinstance(source_uris, str):
+        gcs_file_uris = [source_uris]
 
     # Create ExternalConfig object if not provided
-    external_config = ExternalConfig(gcs_file_format.upper())
-    external_config.source_uris = gcs_file_uris
+    external_config = ExternalConfig(source_format.upper())
+    external_config.source_uris = source_format
 
     # Create BigQuery external table from URIs in GCS
     logger.info(f"Creating external table {dataset}.{table} from GCS files...")
     client = gcp_credentials.get_bigquery_client(project=project, location=location)
     table_id = f"{project}.{dataset}.{table}"
-    external_config = bigquery.ExternalConfig(gcs_file_format.upper())
+    external_config = bigquery.ExternalConfig(source_format.upper())
     external_config.source_uris = gcs_file_uris
     table = bigquery.Table(table_id)
     table.external_data_configuration = external_config
