@@ -16,4 +16,5 @@ def test__create_external_bq_table_from_fide_ratings():
         table="landing_fide__ratings_test",
         gcp_credentials=gcp_credentials_block,
         project="fide-chess-ratings",
+        return_state=True,
     )

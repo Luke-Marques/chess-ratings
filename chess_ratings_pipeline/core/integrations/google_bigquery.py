@@ -6,7 +6,7 @@ from typing import Iterable, List, Optional
 import pandas as pd
 import polars as pl
 from google.cloud import bigquery
-from prefect import flow, get_run_logger
+from prefect import task, flow, get_run_logger
 from prefect_gcp.bigquery import bigquery_load_cloud_storage, bigquery_create_table
 from prefect_gcp.cloud_storage import GcsBucket
 from prefect_gcp.credentials import GcpCredentials
@@ -239,7 +239,7 @@ def load_files_gcs_to_bq(
     logger.info(end_message)
 
 
-@flow(log_prints=True)
+@task(log_prints=True, cache_result_in_memory=False, persist_result=False)
 def create_external_bq_table_from_gcs_files(
     gcs_file_uris: Iterable[str] | str,
     dataset: str,
