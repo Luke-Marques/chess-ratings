@@ -10,8 +10,6 @@ from prefect.runtime import flow_run
 from prefect_gcp import GcpCredentials
 from prefect_gcp.cloud_storage import GcsBucket
 
-import google.api_core.exceptions.Conflict
-
 from chess_ratings_pipeline.core.integrations.fide import (
     FideGameFormat,
     check_valid_month,
