@@ -239,7 +239,7 @@ def load_files_gcs_to_bq(
     logger.info(end_message)
 
 
-@task(log_prints=True, cache_result_in_memory=False, persist_result=False)
+@flow(log_prints=True, cache_result_in_memory=False, persist_result=False)
 def create_external_bq_table_from_gcs_files(
     gcs_file_uris: Iterable[str] | str,
     dataset: str,
@@ -280,16 +280,23 @@ def create_external_bq_table_from_gcs_files(
 
     # Create BigQuery external table from URIs in GCS
     logger.info(f"Creating external table {dataset}.{table} from GCS files...")
-    client = bigquery.Client(
+    bigquery_create_table(
         project=project,
-        location="europe-west1",
+        dataset=dataset,
+        table=table,
+        gcp_credentials=gcp_credentials,
+        location=location,
+        external_config=external_config,
+        clustering_fields=clustering_fields,
+        time_partitioning=time_partitioning,
     )
-    table_id = f"{project}.{dataset}.{table}"
-    external_config = bigquery.ExternalConfig(gcs_file_format.upper())
-    external_config.source_uris = gcs_file_uris
-    table = bigquery.Table(table_id)
-    table.external_data_configuration = external_config
-    client.create_table(table)
+    # client = gcp_credentials.get_bigquery_client(project=project, location=location)
+    # table_id = f"{project}.{dataset}.{table}"
+    # external_config = bigquery.ExternalConfig(gcs_file_format.upper())
+    # external_config.source_uris = gcs_file_uris
+    # table = bigquery.Table(table_id)
+    # table.external_data_configuration = external_config
+    # client.create_table(table)
     logger.info("Finished.")
 
     # Log flow end message
