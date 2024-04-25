@@ -247,9 +247,9 @@ def create_external_bq_table_from_gcs_files(
     gcp_credentials: GcpCredentials,
     clustering_fields: List[str] = None,
     time_partitioning: TimePartitioning = None,
-    project: Optional[str] = None,
     location: str = "europe-west1",
     external_config: Optional["ExternalConfig"] = None,
+    project: Optional[str] = "fide-chess-ratings",
     gcs_file_format: str = "PARQUET",
 ) -> None:
     # Create Prefect info logger
@@ -280,17 +280,17 @@ def create_external_bq_table_from_gcs_files(
 
     # Create BigQuery external table from URIs in GCS
     logger.info(f"Creating external table {dataset}.{table} from GCS files...")
-    bigquery_create_table(
-        dataset=dataset,
-        table=table,
-        gcp_credentials=gcp_credentials,
-        location=location,
+    client = bigquery.Client(
+        credentials=gcp_credentials.get_credentials(),
         project=project,
-        clustering_fields=clustering_fields,
-        time_partitioning=time_partitioning,
-        external_config=external_config,
-        return_state=True,
+        location="europe-west1",
     )
+    table_id = f"{project}.{dataset}.{table}"
+    external_config = bigquery.ExternalConfig(gcs_file_format.upper())
+    external_config.source_uris = gcs_file_uris
+    table = bigquery.Table(table_id)
+    table.external_data_configuration = external_config
+    client.create_table(table)
     logger.info("Finished.")
 
     # Log flow end message
