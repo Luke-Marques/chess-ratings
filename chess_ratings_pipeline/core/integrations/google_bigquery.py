@@ -7,7 +7,7 @@ import pandas as pd
 import polars as pl
 from google.cloud import bigquery
 from prefect import task, flow, get_run_logger
-from prefect_gcp.bigquery import bigquery_load_cloud_storage, bigquery_create_table
+from prefect_gcp.bigquery import bigquery_load_cloud_storage
 from prefect_gcp.cloud_storage import GcsBucket
 from prefect_gcp.credentials import GcpCredentials
 from google.cloud.bigquery.external_config import ExternalConfig
@@ -286,7 +286,7 @@ def create_external_bq_table_from_gcs_files(
     external_config.source_uris = gcs_file_uris
     table = bigquery.Table(table_id)
     table.external_data_configuration = external_config
-    client.create_table(table)
+    client.create_table(table, exists_ok=True)
     logger.info("Finished.")
 
     # Log flow end message

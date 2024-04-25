@@ -10,6 +10,8 @@ from prefect.runtime import flow_run
 from prefect_gcp import GcpCredentials
 from prefect_gcp.cloud_storage import GcsBucket
 
+import google.api_core.exceptions.Conflict
+
 from chess_ratings_pipeline.core.integrations.fide import (
     FideGameFormat,
     check_valid_month,
@@ -177,8 +179,8 @@ def elt_fide_ratings(
     gcs_bucket_block_name: str = "chess-ratings-dev",
     store_local: bool = False,
     overwrite_existing: bool = True,
-    bq_dataset_name: str = "landing",
-    bq_table_name: str = "fide_ratings",
+    bq_dataset_name: str = "fide",
+    bq_table_name: str = "landing_fide__ratings",
 ) -> None:
     """
     Prefect parent-flow for the Extract-Load-Transform (ELT) process for FIDE ratings
@@ -291,7 +293,9 @@ def elt_fide_ratings(
         project="fide-chess-ratings",
         return_state=True,
     )
-    logger.info("Finished.")
+    logger.info(
+        f"External BigQuery table {bq_dataset_name}.{bq_table_name} created successfully."
+    )
 
     # Log flow end message
     end_time = datetime.now()
