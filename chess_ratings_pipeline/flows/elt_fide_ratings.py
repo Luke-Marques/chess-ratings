@@ -328,10 +328,10 @@ def elt_fide_ratings(
         f"Loading FIDE ratings data to BigQuery external table `{bq_dataset_name}.{bq_table_name}`..."
     )
     load_fide_ratings_to_bq_external_table(
-        gcp_credentials_block,
-        gcs_bucket_block,
-        bq_dataset_name,
-        bq_table_name,
+        gcp_credentials_block=gcp_credentials_block,
+        gcs_bucket_block=gcs_bucket_block,
+        bq_dataset_name=bq_dataset_name,
+        bq_table_name=bq_table_name,
         return_state=True,
     )
     logger.info("Finished loading FIDE ratings data to BigQuery external table.")
