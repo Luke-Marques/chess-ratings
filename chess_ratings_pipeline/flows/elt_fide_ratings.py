@@ -176,7 +176,7 @@ def load_fide_ratings_to_bq_external_table(
     gcp_credentials_block: GcpCredentials,
     gcs_bucket_block: GcsBucket,
     project_id: str = "fide-chess-ratings",
-    bq_dataset_name: str = "fide",
+    bq_dataset_name: str = "chess_ratings",
     bq_table_name: str = "landing_fide__ratings",
 ) -> str:
     # Create Prefect logger
@@ -225,7 +225,7 @@ def elt_fide_ratings(
     gcs_bucket_block_name: str = "chess-ratings-dev",
     store_local: bool = False,
     overwrite_existing: bool = True,
-    bq_dataset_name: str = "fide",
+    bq_dataset_name: str = "chess_ratings",
     bq_table_name: str = "landing_fide__ratings",
 ) -> None:
     """
