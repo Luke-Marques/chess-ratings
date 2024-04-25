@@ -19,7 +19,7 @@ from chess_ratings_pipeline.core.integrations.fide import (
     generate_file_path,
 )
 from chess_ratings_pipeline.core.integrations.google_bigquery import (
-    load_file_gcs_to_bq,
+    create_external_bq_table_from_gcs_files,
 )
 from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
     write_dataframe_to_gcs,
@@ -79,8 +79,6 @@ def elt_single_fide_ratings_dataset(
     gcs_bucket_block: GcsBucket,
     store_local: bool,
     overwrite_existing: bool,
-    bq_dataset_name: str = "landing",
-    bq_table_name: str = "fide_ratings",
 ) -> None:
     # Create Prefect info logger
     logger = get_run_logger()
@@ -95,9 +93,7 @@ def elt_single_fide_ratings_dataset(
         gcp_credentials_block (GcpCredentials): {gcp_credentials_block}
         gcs_bucket_block (GcsBucket): {gcs_bucket_block}
         store_local (bool): {store_local}
-        overwrite_existing (bool): {overwrite_existing}
-        bq_dataset_name (str): {bq_dataset_name}
-        bq_table_name (str): {bq_table_name}"""
+        overwrite_existing (bool): {overwrite_existing}"""
     logger.info(start_message)
 
     # Validate year and month values
@@ -164,24 +160,6 @@ def elt_single_fide_ratings_dataset(
             f"to {destination}."
         )
 
-    # Load FIDE ratings data from the GCS bucket to BigQuery
-    logger.info(
-        f"Loading FIDE ratings data for {year}-{month} {fide_game_format.value} to "
-        f"BigQuery data warehouse {bq_dataset_name}/{bq_table_name}..."
-    )
-    load_file_gcs_to_bq(
-        gcs_file=destination,
-        gcp_credentials_block=gcp_credentials_block,
-        gcs_bucket_block=gcs_bucket_block,
-        dataset=bq_dataset_name,
-        table_name=bq_table_name,
-    )
-    logger.info(
-        "Finished loading FIDE ratings data for "
-        f"{year}-{month} {fide_game_format.value} to "
-        f"BigQuery data warehouse {bq_dataset_name}/{bq_table_name}."
-    )
-
     # Log flow end message
     end_time = datetime.now()
     time_taken: timedelta = end_time - start_time
@@ -199,6 +177,8 @@ def elt_fide_ratings(
     gcs_bucket_block_name: str = "chess-ratings-dev",
     store_local: bool = False,
     overwrite_existing: bool = True,
+    bq_dataset_name: str = "landing",
+    bq_table_name: str = "fide_ratings",
 ) -> None:
     """
     Prefect parent-flow for the Extract-Load-Transform (ELT) process for FIDE ratings
@@ -222,7 +202,9 @@ def elt_fide_ratings(
         gcp_credentials_block_name (str): {gcp_credentials_block_name}
         gcs_bucket_block_name (str): {gcs_bucket_block_name}
         store_local (bool): {store_local}
-        overwrite_existing (bool): {overwrite_existing}"""
+        overwrite_existing (bool): {overwrite_existing}
+        bq_dataset_name (str): {bq_dataset_name}
+        bq_table_name (str): {bq_table_name}"""
     logger.info(start_message)
 
     # Convert int year/month values to lists
@@ -263,7 +245,7 @@ def elt_fide_ratings(
         f"Loaded GCS bucket Prefect block. Bucket name: {gcs_bucket_block.bucket}"
     )
 
-    # ELT FIDE ratings data for each year/month and game format
+    # Extract FIDE ratings data for each year/month and game format to GCS
     logger.info(
         "Running FIDE ratings ELT sub-flow for each year/month and game-format "
         "combination..."
@@ -275,7 +257,7 @@ def elt_fide_ratings(
         date_game_format_combinations
     ):
         logger.info(
-            f"Submitting FIDE ratings ELT sub-flow for {year}-{month} "
+            f"Submitting FIDE ratings extraction sub-flow for {year}-{month} "
             f"{fide_game_format.value}, dataset {index+1} of "
             f"{len(date_game_format_combinations)}..."
         )
@@ -290,8 +272,26 @@ def elt_fide_ratings(
             return_state=True,
         )
         logger.info(
-            f"Finished ELT sub-flow for {year}-{month} {fide_game_format.value}."
+            f"Finished extraction sub-flow for {year}-{month} {fide_game_format.value}."
         )
+
+    # Ensure external BQ table pointing to FIDE ratings files exists
+    logger.info(
+        f"Ensuring external BigQuery table {bq_dataset_name}.{bq_table_name} exists..."
+    )
+    gcs_file_uri_patterns = [
+        f"gs://{gcs_bucket_block.bucket}/data/fide_ratings/{game_format}/*.parquet"
+        for game_format in list(FideGameFormat)
+    ]
+    create_external_bq_table_from_gcs_files(
+        gcs_file_uris=gcs_file_uri_patterns,
+        dataset=bq_dataset_name,
+        table=bq_table_name,
+        gcp_credentials=gcp_credentials_block,
+        project="fide-chess-ratings",
+        return_state=True,
+    )
+    logger.info("Finished.")
 
     # Log flow end message
     end_time = datetime.now()
