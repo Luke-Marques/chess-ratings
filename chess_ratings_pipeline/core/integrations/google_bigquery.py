@@ -257,7 +257,7 @@ def create_external_bq_table(
 
     # Log flow start message
     start_time = datetime.now()
-    start_message = f"""Starting `create_external_bq_table_from_gcs_files` flow at {start_time} (local time).
+    start_message = f"""Starting `create_external_bq_table` flow at {start_time} (local time).
     Inputs:
         source_uris (Iterable[str] | str): {source_uris}
         dataset (str): {dataset}
@@ -273,7 +273,7 @@ def create_external_bq_table(
 
     # Convert single URI to list
     if isinstance(source_uris, str):
-        gcs_file_uris = [source_uris]
+        source_uris = [source_uris]
 
     # Create ExternalConfig object if not provided
     external_config = ExternalConfig(source_format.upper())
@@ -284,7 +284,7 @@ def create_external_bq_table(
     client = gcp_credentials.get_bigquery_client(project=project, location=location)
     table_id = f"{project}.{dataset}.{table}"
     external_config = bigquery.ExternalConfig(source_format.upper())
-    external_config.source_uris = gcs_file_uris
+    external_config.source_uris = source_uris
     table = bigquery.Table(table_id)
     table.external_data_configuration = external_config
     client.create_table(table, exists_ok=True)
@@ -293,6 +293,6 @@ def create_external_bq_table(
     # Log flow end message
     end_time = datetime.now()
     time_taken: timedelta = end_time - start_time
-    end_message = f"""Finished `create_external_bq_table_from_gcs_files` flow at {end_time} (local time).
+    end_message = f"""Finished `create_external_bq_table` flow at {end_time} (local time).
         Time taken: {time_taken}"""
     logger.info(end_message)
