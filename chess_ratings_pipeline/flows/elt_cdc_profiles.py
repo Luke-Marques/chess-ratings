@@ -24,6 +24,20 @@ from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
 )
 
 
+def generate_extract_single_title_cdc_profiles_flow_name() -> str:
+    """
+    Generates the name of the `elt_single_title_cdc_profiles` flow based on the
+    parameters provided to the flow.
+
+    Returns:
+        str: The name of the `elt_single_title_cdc_profiles` flow.
+    """
+    flow_name = flow_run.flow_name
+    parameters = flow_run.parameters
+    chess_title: ChessTitle = parameters["chess_title"]
+    return f"{flow_name}-{chess_title.name.lower()}"
+
+
 def generate_elt_cdc_profiles_flow_name() -> str:
     """
     Generates the name of the `elt_cdc_profiles` flow based on the parameters provided
@@ -46,21 +60,9 @@ def generate_elt_cdc_profiles_flow_name() -> str:
     return name
 
 
-def generate_elt_single_title_cdc_profiles_flow_name() -> str:
-    """
-    Generates the name of the `elt_single_title_cdc_profiles` flow based on the
-    parameters provided to the flow.
-
-    Returns:
-        str: The name of the `elt_single_title_cdc_profiles` flow.
-    """
-    flow_name = flow_run.flow_name
-    parameters = flow_run.parameters
-    chess_title: ChessTitle = parameters["chess_title"]
-    return f"{flow_name}-{chess_title.name.lower()}"
-
-
-@flow(flow_run_name=generate_elt_single_title_cdc_profiles_flow_name, log_prints=True)
+@flow(
+    flow_run_name=generate_extract_single_title_cdc_profiles_flow_name, log_prints=True
+)
 def extract_single_title_cdc_profiles(
     chess_title: ChessTitle,
     gcp_credentials_block: GcpCredentials,
