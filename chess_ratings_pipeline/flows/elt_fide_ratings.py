@@ -175,7 +175,7 @@ def extract_single_fide_ratings_dataset(
 def load_fide_ratings_to_bq_external_table(
     gcp_credentials_block: GcpCredentials,
     gcs_bucket_block: GcsBucket,
-    project_id: str = "fide-chess-ratings",
+    project: str = "fide-chess-ratings",
     bq_dataset_name: str = "chess_ratings",
     bq_table_name: str = "landing_fide__ratings",
 ) -> str:
@@ -203,7 +203,7 @@ def load_fide_ratings_to_bq_external_table(
         source_uris=source_uris,
         dataset=bq_dataset_name,
         table=bq_table_name,
-        project_id=project_id,
+        project=project,
         gcp_credentials=gcp_credentials_block,
         return_state=True,
     )
