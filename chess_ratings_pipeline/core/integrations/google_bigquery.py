@@ -281,7 +281,6 @@ def create_external_bq_table_from_gcs_files(
     # Create BigQuery external table from URIs in GCS
     logger.info(f"Creating external table {dataset}.{table} from GCS files...")
     client = bigquery.Client(
-        credentials=gcp_credentials.get_credentials(),
         project=project,
         location="europe-west1",
     )
