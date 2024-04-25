@@ -289,7 +289,6 @@ def create_external_bq_table_from_gcs_files(
         clustering_fields=clustering_fields,
         time_partitioning=time_partitioning,
         external_config=external_config,
-        source_uris=gcs_file_uris,
     )
     logger.info("Finished.")
 
