@@ -11,7 +11,6 @@ from prefect_gcp.bigquery import bigquery_load_cloud_storage, bigquery_create_ta
 from prefect_gcp.cloud_storage import GcsBucket
 from prefect_gcp.credentials import GcpCredentials
 from google.cloud.bigquery.external_config import ExternalConfig
-from google.cloud.bigquery.schema import SchemaField
 from google.cloud.bigquery.table import TimePartitioning
 
 
@@ -246,7 +245,6 @@ def create_external_bq_table_from_gcs_files(
     dataset: str,
     table: str,
     gcp_credentials: GcpCredentials,
-    schema: Optional[List[SchemaField]] = None,
     clustering_fields: List[str] = None,
     time_partitioning: TimePartitioning = None,
     project: Optional[str] = None,
@@ -265,7 +263,6 @@ def create_external_bq_table_from_gcs_files(
         dataset (str): {dataset}
         table (str): {table}
         gcp_credentials (GcpCredentials): {gcp_credentials}
-        schema (Optional[List[SchemaField]]): {schema}
         clustering_fields (List[str]): {clustering_fields}
         time_partitioning (TimePartitioning): {time_partitioning}
         project (Optional[str]): {project}
@@ -289,7 +286,6 @@ def create_external_bq_table_from_gcs_files(
         gcp_credentials=gcp_credentials,
         location=location,
         project=project,
-        schema=schema,
         clustering_fields=clustering_fields,
         time_partitioning=time_partitioning,
         external_config=external_config,
