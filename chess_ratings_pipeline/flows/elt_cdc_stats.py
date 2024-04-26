@@ -176,7 +176,11 @@ def load_cdc_stats_to_bq_external_table(
 
     # Get list of directories in GCS bucket containing Chess.com stats Parquet files
     dirs: List[str] = gcs_bucket_block.list_folders(
-        str(generate_cdc_stats_file_path(ChessTitle.GM, "chess_daily").parent.parent)
+        str(
+            generate_cdc_stats_file_path(
+                ChessTitle.GM, "chess_daily"
+            ).parent.parent.parent
+        )
     )
 
     # Define URI patterns for FIDE ratings Parquet files in GCS bucket
