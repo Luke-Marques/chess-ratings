@@ -168,6 +168,11 @@ def load_cdc_profiles_to_bq_external_table(
         for chess_title in list(ChessTitle)
     ]
 
+    # Limit list of parent directories to those that exist in GCS bucket
+    dirs: List[Path] = [
+        dir for dir in dirs if dir in gcs_bucket_block.list_folders(str(dirs[0].parent))
+    ]
+
     # Define URI patterns for FIDE ratings Parquet files in GCS bucket
     source_uris: List[str] = [
         f"gs://{gcs_bucket_block.bucket}/{dir}/*.parquet" for dir in dirs
