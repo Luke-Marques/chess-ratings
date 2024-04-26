@@ -197,7 +197,7 @@ def elt_cdc_profiles(
     gcs_bucket_block_name: str = "chess-ratings-dev",
     store_local: bool = False,
     overwrite_existing: bool = True,
-    bq_dataset_name: str = "landing",
+    bq_dataset_name: str = "chess_ratings",
     bq_table_name: str = "cdc_profiles",
 ) -> None:
     """
