@@ -199,7 +199,7 @@ def clean_cdc_stats(stats: pl.DataFrame, cdc_game_format: str) -> pl.DataFrame:
         }
 
     # Ensure columns have correct data types
-    stats = stats.with_columns(
+    stats = stats.select(
         [
             pl.from_epoch(pl.col(col)) if "date" in col else pl.col(col).cast(dtype)
             for col, dtype in schema.items()
@@ -208,10 +208,10 @@ def clean_cdc_stats(stats: pl.DataFrame, cdc_game_format: str) -> pl.DataFrame:
     )
 
     # Add column containing todays date, to show date data was scraped
-    stats = stats.with_columns(pl.lit(datetime.today()).alias("scrape_date"))
+    stats = stats.with_columns(pl.lit(datetime.now()).alias("scrape_date"))
 
     # Gather DataFrame
-    stats = stats.collect()
+    stats = stats.unique().collect()
 
     # Display cleaned DataFrame
     logger.info(f"Finished cleaning {cdc_game_format} statistics DataFrame.")

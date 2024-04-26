@@ -312,14 +312,14 @@ def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataF
     ratings = ratings.lazy()
 
     # Ensure all columns are of the correct data type
-    ratings = ratings.with_columns(
+    ratings = ratings.select(
         [
             pl.col(col).cast(dtype)
             for col, dtype in schema.items()
             if col in ratings.columns
         ]
     )
-    
+
     # Rename columns
     ratings = ratings.rename(
         {
@@ -353,4 +353,3 @@ def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataF
     logger.info(f"Schema: {ratings.schema}")
 
     return ratings
-
