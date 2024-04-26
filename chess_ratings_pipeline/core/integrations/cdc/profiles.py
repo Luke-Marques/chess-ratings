@@ -92,9 +92,10 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
     logger.info("Cleaning Chess.com player profiles DataFrame...")
 
     # Convert DataFrame to LazyFrame
-    profiles = profiles.lazy()
+    # profiles = profiles.lazy()
 
     # Define schema of columns Polars data types for DataFrame
+    logger.info("DEFINING SCHEMA")
     schema = {
         "avatar": pl.Utf8,
         "@id": pl.Utf8,
@@ -113,8 +114,11 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
         "twitch_url": pl.Utf8,
         "fide": pl.Int16,
     }
+    logger.info(f"SCHEMA: {schema}")
+    logger.info(f"CURRENT DF SCHEMA: {profiles.schema}")
 
     # Convert columns to data types specified in schema
+    logger.info("CONVERTING COLUMNS TO SPECIFIED DATA TYPES")
     profiles = profiles.with_columns(
         [
             pl.from_epoch(col)
@@ -126,6 +130,7 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
     )
 
     # Rename columns
+    logger.info("RENAME COLUMNS")
     profiles = profiles.rename(
         {
             "avatar": "avatar_url",
@@ -135,10 +140,12 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
     )
 
     # Add column of todays date/time
+    logger.info("ADD SCRAPE DATETIME COLUMN")
     profiles = profiles.with_columns(pl.lit(datetime.now()).alias("scrape_datetime"))
 
     # Drop duplicate rows and gather DataFrame
-    profiles = profiles.unique().collect()
+    logger.info("DROP DUPLICATE ROWS")
+    profiles = profiles.unique()
 
     # Display cleaned DataFrame and Schema
     logger.info("Finished cleaning Chess.com player profiles DataFrame.")
