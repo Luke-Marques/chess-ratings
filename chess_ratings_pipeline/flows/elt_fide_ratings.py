@@ -187,11 +187,10 @@ def load_fide_ratings_to_bq_external_table(
     start_message = f"Starting `create_fide_ratings_external_bq_table` flow at {start_time} (local time)."
     logger.info(start_message)
 
-    # Get list of parent directories for FIDE ratings Parquet files in GCS bucket
-    dirs: List[Path] = [
-        generate_file_path(year=2000, month=1, game_format=gf).parent
-        for gf in list(FideGameFormat)
-    ]
+    # Get list of parent directories containing FIDE ratings Parquet files in GCS bucket
+    dirs: List[str] = gcs_bucket_block.list_folders(
+        str(generate_file_path(2000, 1, FideGameFormat.STANDARD).parent.parent)
+    )
 
     # Define URI patterns for FIDE ratings Parquet files in GCS bucket
     source_uris: List[str] = [

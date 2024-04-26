@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from typing import List, Literal
-from pathlib import Path
 
 import polars as pl
 from prefect import flow
@@ -162,16 +161,11 @@ def load_cdc_profiles_to_bq_external_table(
         bq_table_name (str): {bq_table_name}"""
     logger.info(start_message)
 
-    # Get list of parent directories for FIDE ratings Parquet files in GCS bucket
-    dirs: List[Path] = [
-        generate_cdc_profiles_file_path(chess_title).parent
-        for chess_title in list(ChessTitle)
-    ]
-
-    # Limit list of parent directories to those that exist in GCS bucket
-    dirs: List[Path] = [
-        dir for dir in dirs if dir in gcs_bucket_block.list_folders(str(dirs[0].parent))
-    ]
+    # Get list of parent directories containing Chess.com player profiles Parquet files
+    # in GCS bucket
+    dirs: List[str] = gcs_bucket_block.list_folders(
+        str(generate_cdc_profiles_file_path(ChessTitle.GM).parent.parent)
+    )
 
     # Define URI patterns for FIDE ratings Parquet files in GCS bucket
     source_uris: List[str] = [
