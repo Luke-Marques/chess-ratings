@@ -336,6 +336,11 @@ def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataF
         pl.col("birth_year").replace(0, None).cast(pl.Datetime).dt.year()
     )
 
+    # Convert sex column to integer
+    ratings = ratings.with_columns(
+        pl.col("sex").replace("M", 0).replace("F", 1).cast(pl.Int8)
+    )
+
     # Add columns for ratings period (year and month)
     ratings = ratings.with_columns(
         [
