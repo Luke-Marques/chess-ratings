@@ -145,7 +145,9 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
 
     # # Drop duplicate rows and gather DataFrame
     logger.info("DROP DUPLICATE ROWS")
-    profiles = profiles.unique("*", keep="first")
+    logger.info(f"DF SCHEMA: {profiles.schema}")
+    logger.info(f"DF: {profiles.head()}")
+    profiles = profiles.unique(keep="first")
 
     # Display cleaned DataFrame and Schema
     logger.info("Finished cleaning Chess.com player profiles DataFrame.")
