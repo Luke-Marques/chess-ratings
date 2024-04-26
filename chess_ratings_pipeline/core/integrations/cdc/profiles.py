@@ -143,9 +143,9 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
     logger.info("ADD SCRAPE DATETIME COLUMN")
     profiles = profiles.with_columns(pl.lit(datetime.now()).alias("scrape_datetime"))
 
-    # Drop duplicate rows and gather DataFrame
-    logger.info("DROP DUPLICATE ROWS")
-    profiles = profiles.unique()
+    # # Drop duplicate rows and gather DataFrame
+    # logger.info("DROP DUPLICATE ROWS")
+    # profiles = profiles.unique()
 
     # Display cleaned DataFrame and Schema
     logger.info("Finished cleaning Chess.com player profiles DataFrame.")
