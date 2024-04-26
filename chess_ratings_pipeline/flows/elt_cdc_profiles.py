@@ -198,7 +198,7 @@ def elt_cdc_profiles(
     store_local: bool = False,
     overwrite_existing: bool = True,
     bq_dataset_name: str = "chess_ratings",
-    bq_table_name: str = "cdc_profiles",
+    bq_table_name: str = "landing_cdc__profiles",
 ) -> None:
     """
     Extract, load, and transform Chess.com player profiles for the specified chess
