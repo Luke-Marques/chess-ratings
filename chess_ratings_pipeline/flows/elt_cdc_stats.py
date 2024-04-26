@@ -185,7 +185,8 @@ def load_cdc_stats_to_bq_external_table(
     ]
 
     # Create external BigQuery tables from list of URIs
-    for game_type in "chess", "tactics", "puzzle_rush", "lessons":
+    cdc_game_types = ["chess", "tactics", "puzzle_rush", "lessons"]
+    for game_type in cdc_game_types:
         source_uris: List[str] = [
             f"gs://{gcs_bucket_block.bucket}/{dir}/*.parquet"
             for dir in dirs
