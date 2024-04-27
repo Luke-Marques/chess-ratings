@@ -9,6 +9,7 @@ from prefect.logging import get_run_logger
 from prefect.runtime import flow_run
 from prefect_gcp import GcpCredentials
 from prefect_gcp.cloud_storage import GcsBucket
+from google.cloud import bigquery
 
 from chess_ratings_pipeline.core.integrations.fide import (
     FideGameFormat,
@@ -197,12 +198,32 @@ def load_fide_ratings_to_bq_external_table(
         f"gs://{gcs_bucket_block.bucket}/{dir}/*.parquet" for dir in dirs
     ]
 
+    # Define BigQuery table schema
+    bq_schema = [
+        bigquery.SchemaField("fide_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("player_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("fide_federation", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("sex", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("title", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("w_tite", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("o_title", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("rating", "INTEGER", mode="REQUIRED"),
+        bigquery.SchemaField("game_count", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("k", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("birth_year", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("flag", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("foa_title", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("period_year", "INTEGER", mode="REQUIRED"),
+        bigquery.SchemaField("period_month", "INTEGER", mode="REQUIRED"),
+    ]
+
     # Create external BigQuery table from list of URIs if table does not already exist
     create_external_bq_table(
         source_uris=source_uris,
         dataset=bq_dataset_name,
         table=bq_table_name,
         project=project,
+        schema=bq_schema,
         gcp_credentials=gcp_credentials_block,
         return_state=True,
     )
