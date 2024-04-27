@@ -7,6 +7,7 @@ from prefect.logging import get_run_logger
 from prefect.runtime import flow_run
 from prefect_gcp import GcpCredentials
 from prefect_gcp.cloud_storage import GcsBucket
+from google.cloud import bigquery
 
 from chess_ratings_pipeline.core.integrations.cdc.chess_title import ChessTitle
 from chess_ratings_pipeline.core.integrations.cdc.profiles import (
@@ -172,12 +173,32 @@ def load_cdc_profiles_to_bq_external_table(
         f"gs://{gcs_bucket_block.bucket}/{dir}/*.parquet" for dir in dirs
     ]
 
+    # Define BigQuery table schema
+    bq_schema = [
+        bigquery.SchemaField("avatar_url", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("api_url", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("profile_url", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("username", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("player_id", "INTEGER", mode="REQUIRED"),
+        bigquery.SchemaField("title", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("location", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("country", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("joined", "DATETIME", mode="NULLABLE"),
+        bigquery.SchemaField("last_online", "DATETIME", mode="NULLABLE"),
+        bigquery.SchemaField("followers", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("is_streamer", "DATETIME", mode="NULLABLE"),
+        bigquery.SchemaField("fide", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("scrape_datetime", "DATETIME", mode="NULLABLE"),
+    ]
+
     # Create external BigQuery table from list of URIs if table does not already exist
     create_external_bq_table(
         source_uris=source_uris,
         dataset=bq_dataset_name,
         table=bq_table_name,
         project=project,
+        schema=bq_schema,
         gcp_credentials=gcp_credentials_block,
         return_state=True,
     )
