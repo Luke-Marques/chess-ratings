@@ -8,6 +8,7 @@ from prefect.logging import get_run_logger
 from prefect.runtime import flow_run
 from prefect_gcp import GcpCredentials
 from prefect_gcp.cloud_storage import GcsBucket
+from google.cloud import bigquery
 
 from chess_ratings_pipeline.core.integrations.cdc.chess_title import ChessTitle
 from chess_ratings_pipeline.core.integrations.cdc.stats import (
@@ -189,8 +190,52 @@ def load_cdc_stats_to_bq_external_table(
     ]
 
     # Create external BigQuery tables from list of URIs
-    cdc_game_types = ["chess", "tactics", "puzzle_rush", "lessons"]
-    for game_type in cdc_game_types:
+    bq_schemas = {
+        "chess": [
+            bigquery.SchemaField("player_id", "INTEGER", mode="REQUIRED"),
+            bigquery.SchemaField("game_type", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("time_control", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("last_date", "DATETIME", mode="REQUIRED"),
+            bigquery.SchemaField("last_rating", "INTEGER", mode="REQUIRED"),
+            bigquery.SchemaField("last_rd", "INTEGER", mode="NULLABLE"),
+            bigquery.SchemaField("best_date", "DATETIME", mode="NULLABLE"),
+            bigquery.SchemaField("best_rating", "INTEGER", mode="NULLABLE"),
+            bigquery.SchemaField("best_game", "STRING", mode="NULLABLE"),
+            bigquery.SchemaField("record_win", "INTEGER", mode="NULLABLE"),
+            bigquery.SchemaField("record_loss", "INTEGER", mode="NULLABLE"),
+            bigquery.SchemaField("record_draw", "INTEGER", mode="NULLABLE"),
+            bigquery.SchemaField("record_time_per_move", "NUMERIC", mode="NULLABLE"),
+            bigquery.SchemaField("record_timeout_percent", "NUMERIC", mode="NULLABLE"),
+            bigquery.SchemaField("tournament_count", "INTEGER", mode="NULLABLE"),
+            bigquery.SchemaField("tournament_withdraw", "INTEGER", mode="NULLABLE"),
+            bigquery.SchemaField("tournament_points", "NUMERIC", mode="NULLABLE"),
+            bigquery.SchemaField(
+                "tournament_highest_finish", "NUMERIC", mode="NULLABLE"
+            ),
+        ],
+        "tactics": [
+            bigquery.SchemaField("player_id", "INTEGER", mode="REQUIRED"),
+            bigquery.SchemaField("highest_rating", "INTEGER", mode="NULLABLE"),
+            bigquery.SchemaField("highest_date", "DATETIME", mode="NULLABLE"),
+            bigquery.SchemaField("lowest_rating", "INTEGER", mode="NULLABLE"),
+            bigquery.SchemaField("lowest_date", "DATETIME", mode="NULLABLE"),
+        ],
+        "lessons": [
+            bigquery.SchemaField("player_id", "INTEGER", mode="REQUIRED"),
+            bigquery.SchemaField("highest_rating", "INTEGER", mode="NULLABLE"),
+            bigquery.SchemaField("highest_date", "DATETIME", mode="NULLABLE"),
+            bigquery.SchemaField("lowest_rating", "INTEGER", mode="NULLABLE"),
+            bigquery.SchemaField("lowest_date", "DATETIME", mode="NULLABLE"),
+        ],
+        "puzzle_rush": [
+            bigquery.SchemaField("player_id", "INTEGER", mode="REQUIRED"),
+            bigquery.SchemaField("daily_total_attempts", "INTEGER", mode="NULLABLE"),
+            bigquery.SchemaField("daily_score", "NUMERIC", mode="NULLABLE"),
+            bigquery.SchemaField("best_total_attempts", "INTEGER", mode="NULLABLE"),
+            bigquery.SchemaField("best_score", "NUMERIC", mode="NULLABLE"),
+        ],
+    }
+    for game_type, bq_schema in bq_schemas.items():
         source_uris: List[str] = [
             f"gs://{gcs_bucket_block.bucket}/{dir}/*.parquet"
             for dir in dirs
@@ -203,6 +248,7 @@ def load_cdc_stats_to_bq_external_table(
                 dataset=bq_dataset_name,
                 table=table_name,
                 project=project,
+                schema=bq_schema,
                 gcp_credentials=gcp_credentials_block,
                 return_state=True,
             )

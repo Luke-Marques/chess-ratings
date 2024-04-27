@@ -167,35 +167,38 @@ def clean_cdc_stats(stats: pl.DataFrame, cdc_game_format: str) -> pl.DataFrame:
     # Define schema of columns Polars data types for DataFrame, dependent on game format
     if cdc_game_format in ["tactics", "lessons"]:
         schema = {
-            "highest_rating": pl.Float32,
-            "highest_date": pl.Int64,
-            "lowest_rating": pl.Float32,
-            "lowest_date": pl.Int64,
+            "player_id": pl.Int64,
+            "highest_rating": pl.Int32,
+            "highest_date": pl.Int32,
+            "lowest_rating": pl.Int32,
+            "lowest_date": pl.Int32,
         }
     elif cdc_game_format == "puzzle_rush":
         schema = {
-            "daily_total_attempts": pl.Float32,
-            "daily_score": pl.Float32,
-            "best_total_attempts": pl.Float32,
-            "best_score": pl.Float32,
+            "player_id": pl.Int64,
+            "daily_total_attempts": pl.Int32,
+            "daily_score": pl.Float64,
+            "best_total_attempts": pl.Int32,
+            "best_score": pl.Float64,
         }
     else:
         schema = {
+            "player_id": pl.Int64,
             "last_date": pl.Int64,
-            "last_rating": pl.Float32,
-            "last_rd": pl.Float32,
+            "last_rating": pl.Int32,
+            "last_rd": pl.Int64,
             "best_date": pl.Int64,
-            "best_rating": pl.Float32,
+            "best_rating": pl.Int32,
             "best_game": pl.Utf8,
-            "record_win": pl.Float32,
-            "record_loss": pl.Float32,
-            "record_draw": pl.Float32,
+            "record_win": pl.Int32,
+            "record_loss": pl.Int32,
+            "record_draw": pl.Int32,
             "record_time_per_move": pl.Float64,
             "record_timeout_percent": pl.Float64,
-            "tournament_count": pl.Float32,
-            "tournament_withdraw": pl.Float32,
-            "tournament_points": pl.Float32,
-            "tournament_highest_finish": pl.Float32,
+            "tournament_count": pl.Int32,
+            "tournament_withdraw": pl.Int32,
+            "tournament_points": pl.Int32,
+            "tournament_highest_finish": pl.Int32,
         }
 
     # Ensure columns have correct data types
