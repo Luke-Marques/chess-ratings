@@ -205,7 +205,7 @@ def load_fide_ratings_to_bq_external_table(
         bigquery.SchemaField("fide_federation", "STRING", mode="NULLABLE"),
         bigquery.SchemaField("sex", "INTEGER", mode="NULLABLE"),
         bigquery.SchemaField("title", "STRING", mode="NULLABLE"),
-        bigquery.SchemaField("w_tite", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("w_title", "STRING", mode="NULLABLE"),
         bigquery.SchemaField("o_title", "STRING", mode="NULLABLE"),
         bigquery.SchemaField("rating", "INTEGER", mode="REQUIRED"),
         bigquery.SchemaField("game_count", "INTEGER", mode="NULLABLE"),
