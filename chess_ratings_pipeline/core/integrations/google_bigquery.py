@@ -244,6 +244,7 @@ def create_external_bq_table(
     source_uris: Iterable[str] | str,
     dataset: str,
     table: str,
+    schema: List[bigquery.SchemaField],
     gcp_credentials: GcpCredentials,
     clustering_fields: List[str] = None,
     time_partitioning: TimePartitioning = None,
@@ -285,7 +286,7 @@ def create_external_bq_table(
     table_id = f"{project}.{dataset}.{table}"
     external_config = bigquery.ExternalConfig(source_format.upper())
     external_config.source_uris = source_uris
-    table = bigquery.Table(table_id)
+    table = bigquery.Table(table_id, schema=schema)
     table.external_data_configuration = external_config
     client.create_table(table, exists_ok=True)
     logger.info("Finished.")
