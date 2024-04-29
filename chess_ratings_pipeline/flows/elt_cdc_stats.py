@@ -192,6 +192,7 @@ def load_cdc_stats_to_bq_external_table(
     # Create external BigQuery tables from list of URIs
     bq_schemas = {
         "chess": [
+            bigquery.SchemaField("scrape_datetime", "DATETIME", mode="REQUIRED"),
             bigquery.SchemaField("player_id", "INTEGER", mode="REQUIRED"),
             bigquery.SchemaField("game_type", "STRING", mode="REQUIRED"),
             bigquery.SchemaField("time_control", "STRING", mode="REQUIRED"),
@@ -214,6 +215,7 @@ def load_cdc_stats_to_bq_external_table(
             ),
         ],
         "tactics": [
+            bigquery.SchemaField("scrape_datetime", "DATETIME", mode="REQUIRED"),
             bigquery.SchemaField("player_id", "INTEGER", mode="REQUIRED"),
             bigquery.SchemaField("highest_rating", "INTEGER", mode="NULLABLE"),
             bigquery.SchemaField("highest_date", "DATETIME", mode="NULLABLE"),
@@ -221,6 +223,7 @@ def load_cdc_stats_to_bq_external_table(
             bigquery.SchemaField("lowest_date", "DATETIME", mode="NULLABLE"),
         ],
         "lessons": [
+            bigquery.SchemaField("scrape_datetime", "DATETIME", mode="REQUIRED"),
             bigquery.SchemaField("player_id", "INTEGER", mode="REQUIRED"),
             bigquery.SchemaField("highest_rating", "INTEGER", mode="NULLABLE"),
             bigquery.SchemaField("highest_date", "DATETIME", mode="NULLABLE"),
@@ -228,6 +231,7 @@ def load_cdc_stats_to_bq_external_table(
             bigquery.SchemaField("lowest_date", "DATETIME", mode="NULLABLE"),
         ],
         "puzzle_rush": [
+            bigquery.SchemaField("scrape_datetime", "DATETIME", mode="REQUIRED"),
             bigquery.SchemaField("player_id", "INTEGER", mode="REQUIRED"),
             bigquery.SchemaField("daily_total_attempts", "INTEGER", mode="NULLABLE"),
             bigquery.SchemaField("daily_score", "NUMERIC", mode="NULLABLE"),

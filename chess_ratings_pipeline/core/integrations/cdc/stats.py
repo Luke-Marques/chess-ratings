@@ -211,7 +211,7 @@ def clean_cdc_stats(stats: pl.DataFrame, cdc_game_format: str) -> pl.DataFrame:
     )
 
     # Add column containing todays date, to show date data was scraped
-    stats = stats.with_columns(pl.lit(datetime.now()).alias("scrape_date"))
+    stats = stats.with_columns(pl.lit(datetime.now()).alias("scrape_datetime"))
 
     # Add column indicating game type and time format for chess games
     if "chess" in cdc_game_format:
