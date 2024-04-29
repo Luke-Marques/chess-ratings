@@ -335,7 +335,7 @@ def clean_fide_ratings(
 
     # Convert birth year column to date
     ratings = ratings.with_columns(
-        pl.col("birth_year").replace(0, None).cast(pl.Datetime).dt.year()
+        pl.col("birth_year").replace(0, None).cast(pl.Datetime).dt.year().cast(pl.Int16)
     )
 
     # Convert sex column to integer
