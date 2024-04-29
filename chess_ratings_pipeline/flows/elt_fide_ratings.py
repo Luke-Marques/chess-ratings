@@ -122,7 +122,9 @@ def extract_single_fide_ratings_dataset(
     logger.info(
         f"Cleaning FIDE ratings data for {year}-{month} {fide_game_format.value}..."
     )
-    fide_ratings: pl.DataFrame = clean_fide_ratings(fide_ratings, year, month)
+    fide_ratings: pl.DataFrame = clean_fide_ratings(
+        fide_ratings, year, month, fide_game_format
+    )
     logger.info(
         f"Cleaned FIDE ratings data for {year}-{month} {fide_game_format.value}."
     )
