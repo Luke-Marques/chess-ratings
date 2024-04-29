@@ -205,13 +205,13 @@ def load_cdc_stats_to_bq_external_table(
             bigquery.SchemaField("record_win", "INTEGER", mode="NULLABLE"),
             bigquery.SchemaField("record_loss", "INTEGER", mode="NULLABLE"),
             bigquery.SchemaField("record_draw", "INTEGER", mode="NULLABLE"),
-            bigquery.SchemaField("record_time_per_move", "DOUBLE", mode="NULLABLE"),
-            bigquery.SchemaField("record_timeout_percent", "DOUBLE", mode="NULLABLE"),
+            bigquery.SchemaField("record_time_per_move", "FLOAT64", mode="NULLABLE"),
+            bigquery.SchemaField("record_timeout_percent", "FLOAT64", mode="NULLABLE"),
             bigquery.SchemaField("tournament_count", "INTEGER", mode="NULLABLE"),
             bigquery.SchemaField("tournament_withdraw", "INTEGER", mode="NULLABLE"),
-            bigquery.SchemaField("tournament_points", "DOUBLE", mode="NULLABLE"),
+            bigquery.SchemaField("tournament_points", "FLOAT64", mode="NULLABLE"),
             bigquery.SchemaField(
-                "tournament_highest_finish", "DOUBLE", mode="NULLABLE"
+                "tournament_highest_finish", "FLOAT64", mode="NULLABLE"
             ),
         ],
         "tactics": [
@@ -234,9 +234,9 @@ def load_cdc_stats_to_bq_external_table(
             bigquery.SchemaField("scrape_datetime", "DATETIME", mode="REQUIRED"),
             bigquery.SchemaField("player_id", "INTEGER", mode="REQUIRED"),
             bigquery.SchemaField("daily_total_attempts", "INTEGER", mode="NULLABLE"),
-            bigquery.SchemaField("daily_score", "DOUBLE", mode="NULLABLE"),
+            bigquery.SchemaField("daily_score", "FLOAT64", mode="NULLABLE"),
             bigquery.SchemaField("best_total_attempts", "INTEGER", mode="NULLABLE"),
-            bigquery.SchemaField("best_score", "DOUBLE", mode="NULLABLE"),
+            bigquery.SchemaField("best_score", "FLOAT64", mode="NULLABLE"),
         ],
     }
     for game_type, bq_schema in bq_schemas.items():
