@@ -176,6 +176,11 @@ def write_dataframe_to_gcs(
             )
             return None
 
+    # Ensure df is a Pandas DataFrame, as prefect-gcp requires it
+    if isinstance(df, pl.DataFrame):
+        logger.info("Converting Polars DataFrame to Pandas DataFrame.")
+        df: pd.DataFrame = df.to_pandas(use_pyarrow_extension_array=True)
+
     # Write df to parquet file in GCS bucket
     logger.info(
         f"Writing DataFrame to parquet file at {destination} in GCS bucket {gcs_bucket_block.bucket}."
