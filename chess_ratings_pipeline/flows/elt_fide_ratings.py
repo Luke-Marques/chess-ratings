@@ -203,6 +203,7 @@ def load_fide_ratings_to_bq_external_table(
     # Define BigQuery table schema
     bq_schema = [
         bigquery.SchemaField("fide_id", "INTEGER", mode="REQUIRED"),
+        bigquery.SchemaField("game_format", "STRING", mode="REQUIRED"),
         bigquery.SchemaField("player_name", "STRING", mode="NULLABLE"),
         bigquery.SchemaField("fide_federation", "STRING", mode="NULLABLE"),
         bigquery.SchemaField("sex", "INTEGER", mode="NULLABLE"),
