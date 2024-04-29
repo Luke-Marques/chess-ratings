@@ -272,7 +272,9 @@ def extract_fide_ratings(
 
 
 @task(log_prints=True, cache_result_in_memory=False)
-def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataFrame:
+def clean_fide_ratings(
+    ratings: pl.DataFrame, year: int, month: int, fide_game_format: FideGameFormat
+) -> pl.DataFrame:
     """
     Clean a Polars DataFrame containing FIDE chess ratings data by adding missing
     columns, renaming columns, converting data types, and adding columns corresponding
@@ -348,6 +350,9 @@ def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataF
             pl.lit(month).alias("period_month"),
         ]
     )
+
+    # Add column indicating the FIDE game format
+    ratings = ratings.with_columns(pl.lit(fide_game_format.value).alias("game_format"))
 
     # Drop duplicate rows and gather DataFrame
     ratings = ratings.unique().collect()
