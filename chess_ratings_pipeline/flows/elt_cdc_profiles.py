@@ -187,7 +187,7 @@ def load_cdc_profiles_to_bq_external_table(
         bigquery.SchemaField("joined", "DATETIME", mode="NULLABLE"),
         bigquery.SchemaField("last_online", "DATETIME", mode="NULLABLE"),
         bigquery.SchemaField("followers", "INTEGER", mode="NULLABLE"),
-        bigquery.SchemaField("is_streamer", "DATETIME", mode="NULLABLE"),
+        bigquery.SchemaField("is_streamer", "BOOLEAN", mode="NULLABLE"),
         bigquery.SchemaField("fide", "INTEGER", mode="NULLABLE"),
         bigquery.SchemaField("scrape_datetime", "DATETIME", mode="NULLABLE"),
     ]
