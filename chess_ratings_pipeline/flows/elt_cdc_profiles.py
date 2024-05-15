@@ -22,6 +22,7 @@ from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
     write_dataframe_to_gcs,
     write_dataframe_to_local,
 )
+from chess_ratings_pipeline.core.integrations.dbt.dbt_cloud import run_dbt_job
 
 
 def generate_extract_single_title_cdc_profiles_flow_name() -> str:
@@ -220,6 +221,7 @@ def elt_cdc_profiles(
     overwrite_existing: bool = True,
     bq_dataset_name: str = "chess_ratings",
     bq_table_name: str = "landing_cdc__profiles",
+    dbt_job_id: int = 638701,
 ) -> None:
     """
     Extract, load, and transform Chess.com player profiles for the specified chess
@@ -318,6 +320,11 @@ def elt_cdc_profiles(
     logger.info(
         f"Finished loading Chess.com player profiles to BigQuery external table {bq_dataset_name}.{bq_table_name}."
     )
+
+    # Run dbt models via dbt Cloud job
+    logger.info("Running dbt models via dbt Cloud job...")
+    run_dbt_job(dbt_job_id)
+    logger.info("Finished running dbt models via dbt Cloud job.")
 
     # Log flow end message
     end_time = datetime.now()

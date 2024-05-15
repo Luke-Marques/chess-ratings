@@ -23,6 +23,7 @@ from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
     write_dataframe_to_gcs,
     write_dataframe_to_local,
 )
+from chess_ratings_pipeline.core.integrations.dbt.dbt_cloud import run_dbt_job
 
 
 def generate_extract_single_title_cdc_stats_flow_name() -> str:
@@ -274,6 +275,7 @@ def elt_cdc_stats(
     overwrite_existing: Optional[bool] = True,
     bq_dataset_name: Optional[str] = "chess_ratings",
     bq_table_name_prefix: Optional[str] = "landing_cdc",
+    dbt_job_id: int = 638701,
 ) -> None:
     # Create Prefect info logger
     logger = get_run_logger()
@@ -355,6 +357,11 @@ def elt_cdc_stats(
         "Completed loading all Chess.com game statistics Parquet files from GCS bucket "
         "to BigQuery external table."
     )
+
+    # Run dbt models via dbt Cloud job
+    logger.info("Running dbt models via dbt Cloud job...")
+    run_dbt_job(dbt_job_id)
+    logger.info("Finished running dbt models via dbt Cloud job.")
 
     # Log flow end message
     end_time = datetime.now()

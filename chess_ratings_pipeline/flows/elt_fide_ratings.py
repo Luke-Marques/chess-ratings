@@ -26,6 +26,7 @@ from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
 from chess_ratings_pipeline.core.integrations.google_bigquery import (
     create_external_bq_table,
 )
+from chess_ratings_pipeline.core.integrations.dbt.dbt_cloud import run_dbt_job
 
 
 def generate_extract_single_fide_ratings_dataset_flow_name() -> str:
@@ -250,6 +251,7 @@ def elt_fide_ratings(
     overwrite_existing: bool = True,
     bq_dataset_name: str = "chess_ratings",
     bq_table_name: str = "landing_fide__ratings",
+    dbt_job_id: int = 638701,
 ) -> None:
     """
     Prefect parent-flow for the Extract-Load-Transform (ELT) process for FIDE ratings
@@ -358,6 +360,11 @@ def elt_fide_ratings(
         return_state=True,
     )
     logger.info("Finished loading FIDE ratings data to BigQuery external table.")
+
+    # Run dbt models via dbt Cloud job
+    logger.info("Running dbt models via dbt Cloud job...")
+    run_dbt_job(dbt_job_id)
+    logger.info("Finished running dbt models via dbt Cloud job.")
 
     # Log flow end message
     end_time = datetime.now()
