@@ -1,0 +1,7 @@
+# _cdc_profiles.yml
+
+sources:
+  - name: chess_ratings
+    database: fide-chess-ratings
+    tables:
+      - name: landing_fide__ratings
