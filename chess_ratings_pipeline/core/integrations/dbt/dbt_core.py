@@ -41,7 +41,7 @@ def dbt_run(
     """
     commands = ["pwd", "dbt run"]
     if debug:
-        commands = commands[0] + ["dbt debug"] + commands[1]
+        commands = commands[:1] + ["dbt debug"] + commands[1:]
     if models:
         commands = [
             f"{c} --select {models}" for c in commands if c not in ["pwd", "dbt debug"]
@@ -73,7 +73,7 @@ def dbt_build(
     """
     commands = ["pwd", "dbt build"]
     if debug:
-        commands = commands[0] + ["dbt debug"] + commands[1]
+        commands = commands[:1] + ["dbt debug"] + commands[1:]
     if models:
         commands = [
             f"{c} --select {models}" for c in commands if c not in ["pwd", "dbt debug"]
@@ -105,7 +105,7 @@ def dbt_test(
     """
     commands = ["pwd", "dbt test"]
     if debug:
-        commands = commands[0] + ["dbt debug"] + commands[1]
+        commands = commands[:1] + ["dbt debug"] + commands[1:]
     if models:
         commands = [
             f"{c} --select {models}" for c in commands if c not in ["pwd", "dbt debug"]
@@ -137,7 +137,7 @@ def dbt_seed(
     """
     commands = ["pwd", "dbt seed"]
     if debug:
-        commands = commands[0] + ["dbt debug"] + commands[1]
+        commands = commands[:1] + ["dbt debug"] + commands[1:]
     if models:
         commands = [
             f"{c} --select {models}" for c in commands if c not in ["pwd", "dbt debug"]

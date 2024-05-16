@@ -251,7 +251,6 @@ def elt_fide_ratings(
     overwrite_existing: bool = True,
     bq_dataset_name: str = "chess_ratings",
     bq_table_name: str = "landing_fide__ratings",
-    dbt_job_id: int = 638701,
 ) -> None:
     """
     Prefect parent-flow for the Extract-Load-Transform (ELT) process for FIDE ratings
