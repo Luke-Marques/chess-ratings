@@ -22,7 +22,11 @@ inputs:
   infrastructure_block:
     description: "Name of the infrastructure block"
     required: true
-    default: cloud-run-job/chess-ratings-dev
+    default: "cloud-run-job/chess-ratings-dev"
+  storage_block:
+    description: "Name of the storage block"
+    required: false
+    default: "github/chess-ratings-dev"
 
 runs:
   using: "composite"
@@ -42,7 +46,7 @@ runs:
 
     - name: Install dependencies
       shell: bash
-      run: poetry install --no-interaction
+      run: poetry install --no-interaction --no-root
 
     - name: Configure Prefect credentials
       id: login-prefect

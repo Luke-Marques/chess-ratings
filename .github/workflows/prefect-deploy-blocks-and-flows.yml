@@ -132,4 +132,5 @@ jobs:
           flow_entrypoint: ${{ steps.flow.outputs.entrypoint }}
           deployment: ${{ github.event.inputs.deployment }}
           queue: ${{ github.event.inputs.prefect-queue }}
+          storage_block: github/${{ github.event.inputs.default_block_name }}
           infrastructure_block: cloud-run-job/${{ github.event.inputs.default_block_name }}

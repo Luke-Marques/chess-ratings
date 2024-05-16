@@ -8,7 +8,8 @@ RUN pip install poetry==1.7.1
 # Copy only requirements to cache them in docker layer
 COPY dbt/ /opt/chess-ratings/dbt/
 COPY chess_ratings_pipeline/flows/ /opt/chess-ratings/chess_ratings_pipeline/flows/
-COPY poetry.lock pyproject.toml /opt/chess-ratings/
+COPY poetry.lock /opt/chess-ratings/
+COPY poetry.lock /opt/chess-ratings/
 WORKDIR /opt/chess-ratings/
 
 # Install packages in the system Python
