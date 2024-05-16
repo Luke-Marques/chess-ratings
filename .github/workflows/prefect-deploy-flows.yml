@@ -1,44 +1,6 @@
 name: Deploy Prefect Flows (CI/CD)
 on:
   workflow_dispatch:
-    inputs:
-      deployment:
-        description: Prefect deployment name - could reference environment or branch name e.g. dev or prod
-        required: true
-        default: chess-ratings-dev-deployment
-        type: string
-      prefect-queue:
-        description: Prefect working queue that the flows are on
-        required: true
-        default: chess-ratings-dev-queue
-        type: string
-      artifact_repository:
-        description: Artifact Registry Repository
-        required: true
-        default: "prefect-flows"
-        type: string
-      image_name:
-        description: Image name in Artifact Registry Repository
-        required: true
-        default: "flows"
-        type: string
-      region:
-        description: GCP region
-        required: true
-        default: "europe-west1"
-        type: string
-      default_block_name:
-        description: Name of the GitHub/CloudRunJob/GcsBucket Prefect blocks
-        default: "chess-ratings-dev"
-        type: string
-      gcp_creds_block_name:
-        description: Name of the GcpCredentials block
-        default: "gcp-creds-chess-ratings"
-        type: string
-      gcs_bucket_name:
-        description: Name of GCP GCS Bucket to use for bucket block
-        default: "chess-ratings-datalake_fide-chess-ratings"
-        type: string
   pull_request:
     types: [opened, reopened]
     branches:
@@ -48,7 +10,7 @@ on:
     paths:
       - ".github/workflows/deploy-flows.yml"
       - ".github/actions/deploy-flows/**"
-      - 'chess_ratings_pipeline/flows/**'
+      - "chess_ratings_pipeline/flows/**"
   push:
     branches:
       - main
@@ -57,7 +19,7 @@ on:
     paths:
       - ".github/workflows/deploy-flows.yml"
       - ".github/actions/deploy-flows/**"
-      - 'chess_ratings_pipeline/flows/**'
+      - "chess_ratings_pipeline/flows/**"
 
 jobs:
 
@@ -95,7 +57,7 @@ jobs:
           prefect_api_key: ${{ secrets.PREFECT_API_KEY }}
           prefect_api_url: ${{ secrets.PREFECT_API_URL }}
           flow_entrypoint: ${{ steps.flow.outputs.entrypoint }}
-          deployment: ${{ github.event.inputs.deployment }}
-          queue: ${{ github.event.inputs.prefect-queue }}
-          storage_block: github/${{ github.event.inputs.default_block_name }}
-          infrastructure_block: cloud-run-job/${{ github.event.inputs.default_block_name }}
+          deployment: "chess-ratings-dev-deployment"
+          queue: "chess-ratings-dev-queue"
+          storage_block: "github/chess-ratings-dev"
+          infrastructure_block: "cloud-run-job/chess-ratings-dev"
