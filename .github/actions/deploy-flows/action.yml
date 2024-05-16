@@ -47,8 +47,8 @@ runs:
     - name: Configure Prefect credentials
       id: login-prefect
       run: |
-        prefect config set PREFECT_API_KEY=${{ inputs.prefect_api_key }}
-        prefect config set PREFECT_API_URL=${{ inputs.prefect_api_url }}
+        poetry run prefect config set PREFECT_API_KEY=${{ inputs.prefect_api_key }}
+        poetry run prefect config set PREFECT_API_URL=${{ inputs.prefect_api_url }}
       shell: bash
 
     - name: Run Prefect Deployment build
