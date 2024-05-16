@@ -15,5 +15,4 @@ def build_all_dbt_models():
         project_dir=Path("dbt"),
         debug=True,
     )
-    logger.info("Finished running dbt models via dbt core.")
     logger.info(f"dbt result: {dbt_result}")

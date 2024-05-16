@@ -7,7 +7,7 @@ from prefect_dbt.cli.commands import DbtCoreOperation
 
 
 @flow
-def trigger_dbt_flow(project_dir: Path, profiles_dir: Path, commands: List[str]):
+def trigger_dbt_flow(project_dir: Path, commands: List[str]):
     dbt_cli_profile = DbtCliProfile.load("chess-ratings-dev")
     with DbtCoreOperation(
         commands=list(commands),
@@ -23,7 +23,6 @@ def trigger_dbt_flow(project_dir: Path, profiles_dir: Path, commands: List[str])
 @flow
 def dbt_run(
     project_dir: Path,
-    profiles_dir: Path,
     models: Optional[Path] = None,
     debug: bool = True,
 ) -> List[str]:
@@ -47,7 +46,6 @@ def dbt_run(
         ]
     return trigger_dbt_flow(
         project_dir,
-        profiles_dir,
         commands,
     )
 
@@ -55,7 +53,6 @@ def dbt_run(
 @flow
 def dbt_build(
     project_dir: Path,
-    profiles_dir: Path,
     models: Optional[Path] = None,
     debug: bool = True,
 ) -> List[str]:
@@ -79,7 +76,6 @@ def dbt_build(
         ]
     return trigger_dbt_flow(
         project_dir,
-        profiles_dir,
         commands,
     )
 
@@ -87,7 +83,6 @@ def dbt_build(
 @flow
 def dbt_test(
     project_dir: Path,
-    profiles_dir: Path,
     models: Optional[Path] = None,
     debug: bool = True,
 ) -> List[str]:
@@ -111,7 +106,6 @@ def dbt_test(
         ]
     return trigger_dbt_flow(
         project_dir,
-        profiles_dir,
         commands,
     )
 
@@ -119,7 +113,6 @@ def dbt_test(
 @flow
 def dbt_seed(
     project_dir: Path,
-    profiles_dir: Path,
     models: Optional[Path] = None,
     debug: bool = True,
 ) -> List[str]:
@@ -143,7 +136,6 @@ def dbt_seed(
         ]
     return trigger_dbt_flow(
         project_dir,
-        profiles_dir,
         commands,
     )
 
@@ -151,7 +143,6 @@ def dbt_seed(
 @flow
 def dbt_clean(
     project_dir: Path,
-    profiles_dir: Path,
 ) -> List[str]:
     """
     Trigger a dbt debug and clean flow.
@@ -166,6 +157,5 @@ def dbt_clean(
     commands = ["pwd", "dbt clean"]
     return trigger_dbt_flow(
         project_dir,
-        profiles_dir,
         commands,
     )
