@@ -26,7 +26,7 @@ from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
 from chess_ratings_pipeline.core.integrations.google_bigquery import (
     create_external_bq_table,
 )
-from chess_ratings_pipeline.core.integrations.dbt.dbt_cloud import run_dbt_job
+from chess_ratings_pipeline.core.integrations.dbt.dbt_core import dbt_build
 
 
 def generate_extract_single_fide_ratings_dataset_flow_name() -> str:
@@ -362,9 +362,14 @@ def elt_fide_ratings(
     logger.info("Finished loading FIDE ratings data to BigQuery external table.")
 
     # Run dbt models via dbt Cloud job
-    logger.info("Running dbt models via dbt Cloud job...")
-    run_dbt_job(dbt_job_id)
-    logger.info("Finished running dbt models via dbt Cloud job.")
+    logger.info("Running dbt models via dbt core...")
+    dbt_result: List[str] = dbt_build(
+        project_dir=Path("dbt"),
+        profiles_dir=Path("dbt"),
+        debug=True,
+    )
+    logger.info("Finished running dbt models via dbt core.")
+    logger.info(f"dbt result: {dbt_result}")
 
     # Log flow end message
     end_time = datetime.now()
