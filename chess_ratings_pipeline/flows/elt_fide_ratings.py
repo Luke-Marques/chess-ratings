@@ -26,7 +26,7 @@ from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
 from chess_ratings_pipeline.core.integrations.google_bigquery import (
     create_external_bq_table,
 )
-from chess_ratings_pipeline.core.integrations.dbt.dbt_core import dbt_build
+from chess_ratings_pipeline.core.integrations.dbt.dbt_core import trigger_dbt_flow
 
 
 def generate_extract_single_fide_ratings_dataset_flow_name() -> str:
@@ -362,10 +362,8 @@ def elt_fide_ratings(
 
     # Run dbt models via dbt Cloud job
     logger.info("Running dbt models via dbt core...")
-    dbt_result: List[str] = dbt_build(
-        project_dir=Path("dbt"),
-        profiles_dir=Path("dbt"),
-        debug=True,
+    dbt_result: List[str] = trigger_dbt_flow(
+        commands=["pwd", "dbt debug", "dbt build"]
     )
     logger.info("Finished running dbt models via dbt core.")
     logger.info(f"dbt result: {dbt_result}")

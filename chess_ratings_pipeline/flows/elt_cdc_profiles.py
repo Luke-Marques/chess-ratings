@@ -22,7 +22,7 @@ from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
     write_dataframe_to_gcs,
     write_dataframe_to_local,
 )
-from chess_ratings_pipeline.core.integrations.dbt.dbt_cloud import run_dbt_job
+from chess_ratings_pipeline.core.integrations.dbt.dbt_core import trigger_dbt_flow
 
 
 def generate_extract_single_title_cdc_profiles_flow_name() -> str:
@@ -322,9 +322,10 @@ def elt_cdc_profiles(
     )
 
     # Run dbt models via dbt Cloud job
-    logger.info("Running dbt models via dbt Cloud job...")
-    run_dbt_job(dbt_job_id)
-    logger.info("Finished running dbt models via dbt Cloud job.")
+    logger.info("Running dbt models via dbt core...")
+    dbt_result: List[str] = trigger_dbt_flow(commands=["pwd", "dbt debug", "dbt build"])
+    logger.info("Finished running dbt models via dbt core.")
+    logger.info(f"dbt result: {dbt_result}")
 
     # Log flow end message
     end_time = datetime.now()
