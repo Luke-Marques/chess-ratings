@@ -9,7 +9,7 @@ RUN pip install poetry==1.7.1
 COPY dbt/ /opt/chess-ratings/dbt/
 COPY chess_ratings_pipeline/flows/ /opt/chess-ratings/chess_ratings_pipeline/flows/
 COPY poetry.lock /opt/chess-ratings/
-COPY poetry.lock /opt/chess-ratings/
+COPY pyproject.toml /opt/chess-ratings/
 WORKDIR /opt/chess-ratings/
 
 # Install packages in the system Pytho
