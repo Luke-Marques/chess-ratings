@@ -12,7 +12,6 @@ def trigger_dbt_flow(project_dir: Path, profiles_dir: Path, commands: List[str])
     with DbtCoreOperation(
         commands=list(commands),
         project_dir=project_dir,
-        profiles_dir=profiles_dir,
         dbt_cli_profile=dbt_cli_profile,
     ) as dbt_operation:
         dbt_process = dbt_operation.trigger()
