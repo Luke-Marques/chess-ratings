@@ -12,7 +12,6 @@ COPY poetry.lock pyproject.toml /opt/chess-ratings/
 WORKDIR /opt/chess-ratings/
 
 # Install packages in the system Python
-COPY poetry.lock pyproject.toml ./
 RUN poetry config virtualenvs.create false
 RUN poetry config virtualenvs.prefer-active-python true
 
