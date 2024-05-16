@@ -1,9 +1,6 @@
 name: Deploy Prefect Blocks and Flows
 
 on:
-  push:
-    branches:
-      - dbt-integration
   workflow_dispatch:
     inputs:
       deployment:
