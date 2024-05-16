@@ -41,7 +41,3 @@ cloud_run_job_block = CloudRunJob(
     max_retries=0,
 )
 cloud_run_job_block.save(args.block_name, overwrite=True)
-
-# create GCP GCS Bucket block and save to Prefect Cloud
-gcs_bucket_block = GcsBucket(bucket=args.bucket_name, credentials=gcp_credentials)
-gcs_bucket_block.save(args.block_name, overwrite=True)

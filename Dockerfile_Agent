@@ -5,12 +5,8 @@ FROM prefecthq/prefect:2-python3.12 as python-base
 RUN pip install --upgrade pip
 RUN pip install poetry==1.7.1
 
-# Copy only requirements to cache them in docker layer
-COPY chess_ratings_pipeline/flows/ /opt/chess-ratings/chess_ratings_pipeline/flows/
-COPY poetry.lock pyproject.toml /opt/chess-ratings/
-WORKDIR /opt/chess-ratings/
-
-# Install packages in the system Python
+# Install packages in the system Pytho
+COPY poetry.lock pyproject.toml ./
 RUN poetry config virtualenvs.create false
 RUN poetry config virtualenvs.prefer-active-python true
 
