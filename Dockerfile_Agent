@@ -22,4 +22,4 @@ ENV PREFECT_API_URL=$PREFECT_API_URL
 RUN prefect block register -m prefect_gcp
 
 # Set entrypoint to start prefect agent/worker 
-ENTRYPOINT [ "prefect", "agent", "start", "-q", "chess-ratings-dev" ]
+ENTRYPOINT [ "prefect", "agent", "start", "-q", "chess-ratings-dev-queue" ]
