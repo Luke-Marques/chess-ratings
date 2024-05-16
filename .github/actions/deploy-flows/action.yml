@@ -13,14 +13,16 @@ inputs:
     required: true
   deployment:
     description: "Prefect deployment name - could reference environment or branch name e.g. dev or prod"
-    required: false
-    default: default
+    required: true
+    default: chess-ratings-dev-deployment
   queue:
     description: "Prefect queue name"
     required: true
+    default: chess-ratings-dev-queue
   infrastructure_block:
     description: "Name of the infrastructure block"
     required: true
+    default: cloud-run-job/chess-ratings-dev
 
 runs:
   using: "composite"
