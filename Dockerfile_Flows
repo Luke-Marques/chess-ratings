@@ -5,6 +5,12 @@ FROM prefecthq/prefect:2-python3.12 as python-base
 RUN pip install --upgrade pip
 RUN pip install poetry==1.7.1
 
+# Copy only requirements to cache them in docker layer
+COPY dbt/ /opt/chess-ratings/dbt/
+COPY chess_ratings_pipeline/flows/ /opt/chess-ratings/chess_ratings_pipeline/flows/
+COPY poetry.lock pyproject.toml /opt/chess-ratings/
+WORKDIR /opt/chess-ratings/
+
 # Install packages in the system Python
 COPY poetry.lock pyproject.toml ./
 RUN poetry config virtualenvs.create false
@@ -19,7 +25,4 @@ ENV PREFECT_API_KEY=$PREFECT_API_KEY
 ARG PREFECT_API_URL
 ENV PREFECT_API_URL=$PREFECT_API_URL
 
-# Copy pipeline and dbt files
-WORKDIR /app
-COPY chess_ratings_pipeline/ ./chess_ratings_pipeline/
-COPY dbt/ ./dbt/
+RUN prefect block register -m prefect_gcp
