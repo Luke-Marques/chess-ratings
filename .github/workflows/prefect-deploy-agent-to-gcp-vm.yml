@@ -1,6 +1,9 @@
 name: Prefect Agent Deployment
 
 on:
+  push:
+    branches:
+      - dbt-integration
   workflow_dispatch:
     inputs:
       artifact_repository:
