@@ -48,6 +48,10 @@ of players who do not have verified accounts. This is a task for future work.
 
 ![pipeline_flow_chart](https://raw.githubusercontent.com/Luke-Marques/chess-ratings/dev/images/project_flow_chart.png)
 
+*Note: The step "Visualisation and Dashboarding", which encompasses the use of Google
+Looker for data visualization and BI, is currently under development and not present in 
+this repository yet.*
+
 ## Prefect Flow Example
 
 Below is an example of a completed flow which ingests data from the Chess.com API,
