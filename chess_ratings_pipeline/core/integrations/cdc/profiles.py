@@ -96,9 +96,9 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
 
     # Define schema of columns Polars data types for DataFrame
     schema = {
-        "avatar": pl.Utf8,
-        "@id": pl.Utf8,
-        "url": pl.Utf8,
+        "avatar_url": pl.Utf8,
+        "api_url": pl.Utf8,
+        "profile_url": pl.Utf8,
         "username": pl.Utf8,
         "player_id": pl.Int64,
         "title": pl.Utf8,
@@ -114,6 +114,15 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
         "fide": pl.Int16,
     }
 
+    # Rename columns
+    profiles = profiles.rename(
+        {
+            "avatar": "avatar_url",
+            "@id": "api_url",
+            "url": "profile_url",
+        }
+    )
+
     # Convert columns to data types specified in schema
     profiles = profiles.select(
         [
@@ -125,17 +134,13 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
         ]
     )
 
-    # Rename columns
-    profiles = profiles.rename(
-        {
-            "avatar": "avatar_url",
-            "@id": "api_url",
-            "url": "profile_url",
-        }
-    )
-
     # Add column of todays date/time
     profiles = profiles.with_columns(pl.lit(datetime.now()).alias("scrape_datetime"))
+
+    # Select only those columns which appear in schema, and scrape_datetime
+    profiles = profiles.select(
+        [col for col in schema.keys() if col in profiles.columns] + ["scrape_datetime"]
+    )
 
     # Drop duplicate rows and gather DataFrame
     profiles = profiles.unique(keep="first").collect()

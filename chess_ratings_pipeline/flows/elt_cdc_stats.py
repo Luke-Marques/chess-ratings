@@ -15,6 +15,7 @@ from chess_ratings_pipeline.core.integrations.cdc.stats import (
     clean_cdc_stats,
     extract_titled_cdc_stats,
     generate_cdc_stats_file_path,
+    generate_bq_table_name,
 )
 from chess_ratings_pipeline.core.integrations.google_bigquery import (
     create_external_bq_table,
@@ -71,85 +72,96 @@ def extract_single_title_cdc_stats(
     store_local: bool,
     overwrite_existing: bool,
 ) -> None:
+    """
+    Writes Chess.com player game statistics DataFrame to parquet file in GCS bucket
+    and/or locally, and then loads the data file from GCS to BigQuery.
+
+    Args:
+        chess_title (ChessTitle):
+            The title of the chess game.
+        cdc_game_format (str):
+            The Chess.com game format.
+        stats_df (pl.DataFrame):
+            The DataFrame containing the statistics.
+        gcp_credentials_block (GcpCredentials):
+            The GCP credentials block.
+        gcs_bucket_block (GcsBucket):
+            The GCS bucket block.
+        store_local (bool):
+            Flag indicating whether to store the statistics locally.
+        overwrite_existing (bool):
+            Flag indicating whether to overwrite existing statistics.
+        bq_dataset_name (str):
+            The name of the BigQuery dataset.
+        bq_table_name_prefix (str):
+            The prefix for the BigQuery table name.
+
+    Returns:
+        None
+    """
     # Create Prefect info logger
     logger = get_run_logger()
 
     # Log flow start message
     start_time = datetime.now()
-    start_message = f"""Starting `elt_single_title_cdc_stats` flow at {start_time} (local time).
+    start_message = f"""Starting `load_single_cdc_game_format_stats` flow at {start_time} (local time).
     Inputs:
         chess_title (ChessTitle): {chess_title}
-        gcp_credentials_block: {gcp_credentials_block}
-        gcs_bucket_block: {gcs_bucket_block}
+        cdc_game_format (str): {cdc_game_format}
+        stats_df (pl.DataFrame): \n\t{stats_df}
+        gcp_credentials_block (GcpCredentials): {gcp_credentials_block}
+        gcs_bucket_block (GcsBucket): {gcs_bucket_block}
         store_local (bool): {store_local}
-        overwrite_existing (bool): {overwrite_existing}"""
+        overwrite_existing (bool): {overwrite_existing}
+        bq_dataset_name (str): {bq_dataset_name}
+        bq_table_name_prefix (str): {bq_table_name_prefix}"""
     logger.info(start_message)
 
-    # Extract Chess.com player game statistics for the specified ChessTitle
+    # Generate destination parquet file path for writing of player game statistics
     logger.info(
-        "Extracting Chess.com player game statistics for "
-        f"{chess_title.value} titled players on "
-        f"{datetime.now().date} at {datetime.now().time}..."
+        f"Generating destination parquet file path for {chess_title.value} titled "
+        f"Chess.com players' {cdc_game_format} game statistics..."
     )
-    cdc_stats: Dict[str, pl.DataFrame] = extract_titled_cdc_stats(chess_title)
-    logger.info(
-        "Extracted Chess.com player game statistics for the following Chess.com "
-        f"game-formats: {cdc_stats.keys()}"
-    )
-    logger.info(
-        "Extracted game statistics for "
-        f"{max([len(stats_df) for stats_df in cdc_stats.values()]):_} players."
-    )
-    logger.info("Chess.com game statistics DataFrame(s):")
-    for cdc_game_format, stats_df in cdc_stats.items():
-        logger.info(f"{cdc_game_format}: {stats_df}")
+    destination: Path = generate_cdc_stats_file_path(chess_title, cdc_game_format)
+    logger.info(f"File path: {destination}")
 
-    # Apply initial cleaning/pre-processing to player game statistics DataFrames
+    # Write player game statistics to parquet file in GCS bucket and/or locally
     logger.info(
-        f"Cleaning Chess.com {chess_title.value} titled player game statistics "
-        "DataFrames..."
+        f"Writing cleaned {chess_title.value} titled Chess.com players' "
+        f"{cdc_game_format} game statistics to GCS bucket at {destination}..."
     )
-    for cdc_game_format, stats_df in cdc_stats.items():
-        cdc_stats[cdc_game_format] = clean_cdc_stats(stats_df, cdc_game_format)
-    logger.info("Cleaned Chess.com game statistics DataFrames.")
-    for cdc_game_format, stats_df in cdc_stats.items():
-        logger.info(
-            f"{cdc_game_format} statistics DataFrame"
-            f"\n\tShape: {stats_df.shape} "
-            f"\n\tColumns: {stats_df.columns}"
-        )
-
-    # Write player game statistics to parquet files in GCS bucket and/or locally
-    for index, (cdc_game_format, stats_df) in enumerate(cdc_stats.items()):
-        # Generate destination parquet file path for writing of player game statistics
-        logger.info(f"Dataset {index} of {len(cdc_stats)}.")
-        logger.info(
-            f"Generating destination parquet file path for {chess_title.value} titled "
-            f"Chess.com players' {cdc_game_format} game statistics..."
-        )
-        destination: Path = generate_cdc_stats_file_path(chess_title, cdc_game_format)
-        logger.info(f"File path: {destination}")
-        # Write player game statistics to parquet file in GCS bucket and/or locally
+    write_dataframe_to_gcs(stats_df, destination, gcs_bucket_block, overwrite_existing)
+    logger.info("Finished writing game statistics to GCS bucket.")
+    if store_local:
         logger.info(
             f"Writing cleaned {chess_title.value} titled Chess.com players' "
-            f"{cdc_game_format} game statistics to GCS bucket at {destination}..."
+            f"{cdc_game_format} game statistics to {destination} locally..."
         )
-        write_dataframe_to_gcs(
-            stats_df, destination, gcs_bucket_block, overwrite_existing
-        )
-        logger.info("Finished writing game statistics to GCS bucket.")
-        if store_local:
-            logger.info(
-                f"Writing cleaned {chess_title.value} titled Chess.com players' "
-                f"{cdc_game_format} game statistics to {destination} locally..."
-            )
-            write_dataframe_to_local(stats_df, destination, overwrite_existing)
-            logger.info("Finished writing game statistics locally.")
+        write_dataframe_to_local(stats_df, destination, overwrite_existing)
+        logger.info("Finished writing game statistics locally.")
+
+    # Generate BQ table name
+    bq_table_name: str = generate_bq_table_name(bq_table_name_prefix, cdc_game_format)
+
+    # Load player game statistics data from GCS bucket to BigQuery
+    logger.info(
+        f"Loading cleaned Chess.com {chess_title.value} titled player "
+        f"{cdc_game_format} statistics data to BigQuery data warehouse "
+        f"{bq_dataset_name}/{bq_table_name}..."
+    )
+    load_file_gcs_to_bq(
+        gcs_file=destination,
+        gcp_credentials_block=gcp_credentials_block,
+        gcs_bucket_block=gcs_bucket_block,
+        dataset=bq_dataset_name,
+        table_name=bq_table_name,
+    )
+    logger.info("Finished loading player game statistics data to BigQuery.")
 
     # Log flow end message
     end_time = datetime.now()
     time_taken: timedelta = end_time - start_time
-    end_message = f"""Finished `elt_single_title_cdc_stats` flow at {end_time} (local time).
+    end_message = f"""Finished `load_single_cdc_game_format_stats` flow at {end_time} (local time).
     Time taken: {time_taken}."""
     logger.info(end_message)
 
