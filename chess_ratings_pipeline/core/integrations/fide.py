@@ -272,7 +272,9 @@ def extract_fide_ratings(
 
 
 @task(log_prints=True, cache_result_in_memory=False)
-def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataFrame:
+def clean_fide_ratings(
+    ratings: pl.DataFrame, year: int, month: int, fide_game_format: FideGameFormat
+) -> pl.DataFrame:
     """
     Clean a Polars DataFrame containing FIDE chess ratings data by adding missing
     columns, renaming columns, converting data types, and adding columns corresponding
@@ -312,14 +314,14 @@ def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataF
     ratings = ratings.lazy()
 
     # Ensure all columns are of the correct data type
-    ratings = ratings.with_columns(
+    ratings = ratings.select(
         [
             pl.col(col).cast(dtype)
             for col, dtype in schema.items()
             if col in ratings.columns
         ]
     )
-    
+
     # Rename columns
     ratings = ratings.rename(
         {
@@ -333,7 +335,12 @@ def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataF
 
     # Convert birth year column to date
     ratings = ratings.with_columns(
-        pl.col("birth_year").replace(0, None).cast(pl.Datetime).dt.year()
+        pl.col("birth_year").replace(0, None).cast(pl.Datetime).dt.year().cast(pl.Int16)
+    )
+
+    # Convert sex column to integer
+    ratings = ratings.with_columns(
+        pl.col("sex").replace("M", 0).replace("F", 1).cast(pl.Int8)
     )
 
     # Add columns for ratings period (year and month)
@@ -344,6 +351,9 @@ def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataF
         ]
     )
 
+    # Add column indicating the FIDE game format
+    ratings = ratings.with_columns(pl.lit(fide_game_format.value).alias("game_format"))
+
     # Drop duplicate rows and gather DataFrame
     ratings = ratings.unique().collect()
 
@@ -353,4 +363,3 @@ def clean_fide_ratings(ratings: pl.DataFrame, year: int, month: int) -> pl.DataF
     logger.info(f"Schema: {ratings.schema}")
 
     return ratings
-

@@ -6,20 +6,23 @@ on:
     branches:
       - main
       - dev
+      - dbt-integration
     paths:
       - ".github/workflows/deploy-flows.yml"
       - ".github/actions/deploy-flows/**"
-      - 'chess_ratings_pipeline/flows/**'
+      - "chess_ratings_pipeline/flows/**"
   push:
     branches:
       - main
       - dev
+      - dbt-integration
     paths:
       - ".github/workflows/deploy-flows.yml"
       - ".github/actions/deploy-flows/**"
-      - 'chess_ratings_pipeline/flows/**'
+      - "chess_ratings_pipeline/flows/**"
 
 jobs:
+
   list-flows:
     runs-on: ubuntu-latest
     outputs:
@@ -27,30 +30,34 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - id: set-matrix
-        run: echo "matrix=$(ls chess_ratings_pipeline/flows/*.py | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+      - name: Generate matrix output for flows
+        id: set-matrix
+        run: |
+          echo "matrix=$(ls chess_ratings_pipeline/flows/*.py | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+        shell: bash
 
-  deploy:
+  deploy-flows-images:
     needs: list-flows
     runs-on: ubuntu-latest
     strategy:
       matrix:
         flows: ${{ fromJson(needs.list-flows.outputs.matrix) }}
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
-      - id: flow  # example output: "flows/hello.py:hello"
+      - name: Creates entrypoint output value
+        id: flow
         run: |
           export FLOW_NAME=$(basename ${{ matrix.flows }} .py)
           echo "entrypoint=${{ matrix.flows }}:$FLOW_NAME" >> $GITHUB_OUTPUT
-      - id: deploy
+      - name: Deploy flows to Cloud Run
+        id: deploy
         uses: ./.github/actions/deploy-flows
         with:
           prefect_api_key: ${{ secrets.PREFECT_API_KEY }}
           prefect_api_url: ${{ secrets.PREFECT_API_URL }}
           flow_entrypoint: ${{ steps.flow.outputs.entrypoint }}
-          deployment: "chess-ratings-dev"
-          queue: "chess-ratings-dev"
+          deployment: "chess-ratings-dev-deployment"
+          queue: "chess-ratings-dev-queue"
           storage_block: "github/chess-ratings-dev"
           infrastructure_block: "cloud-run-job/chess-ratings-dev"
-          python_version: "3.12"

@@ -1,0 +1,136 @@
+name: Deploy Prefect Blocks and Flows
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment:
+        description: Prefect deployment name - could reference environment or branch name e.g. dev or prod
+        required: true
+        default: chess-ratings-dev-deployment
+        type: string
+      prefect-queue:
+        description: Prefect working queue that the flows are on
+        required: true
+        default: chess-ratings-dev-queue
+        type: string
+      artifact_repository:
+        description: Artifact Registry Repository
+        required: true
+        default: "prefect-flows"
+        type: string
+      image_name:
+        description: Image name in Artifact Registry Repository
+        required: true
+        default: "flows"
+        type: string
+      region:
+        description: GCP region
+        required: true
+        default: "europe-west1"
+        type: string
+      default_block_name:
+        description: Name of the GitHub/CloudRunJob/GcsBucket Prefect blocks
+        default: "chess-ratings-dev"
+        type: string
+      gcp_creds_block_name:
+        description: Name of the GcpCredentials block
+        default: "gcp-creds-chess-ratings"
+        type: string
+      gcs_bucket_name:
+        description: Name of GCP GCS Bucket to use for bucket block
+        default: "chess-ratings-datalake_fide-chess-ratings"
+        type: string
+
+jobs:
+  builds-and-deploys-flows-image:
+    runs-on: ubuntu-latest
+    outputs:
+      image-uri: ${{ steps.output-image-uri.outputs.image-uri }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Get Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+      - name: Install dependencies
+        shell: bash
+        run: poetry install --no-interaction --no-root
+      - name: Build and push image to Artifact Registry
+        id: image-build-push
+        uses: ./.github/actions/container-image
+        with:
+          prefect_api_key: ${{ secrets.PREFECT_API_KEY }}
+          prefect_api_url: ${{ secrets.PREFECT_API_URL }}
+          gcp_credentials_json: ${{ secrets.PREFECT_GCP_CREDENTIALS }}
+          region: ${{ github.event.inputs.region }}
+          artifact_repository: ${{ github.event.inputs.artifact_repository }}
+          image_name: ${{ github.event.inputs.image_name }}
+          dockerfile_path: Dockerfile_Flows
+      - name: Output image URI
+        id: output-image-uri
+        run: echo "image-uri=$(echo ${{ steps.image-build-push.outputs.image-uri }})" >> $GITHUB_OUTPUT
+        shell: bash
+
+  deploy-blocks:
+    needs: [builds-and-deploys-flows-image]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Create and deploy Prefect blocks
+        id: create-blocks
+        uses: ./.github/actions/blocks
+        with:
+          prefect_api_key: ${{ secrets.PREFECT_API_KEY }}
+          prefect_api_url: ${{ secrets.PREFECT_API_URL }}
+          block_name: ${{ github.event.inputs.default_block_name }}
+          gcp_creds_block_name: ${{ github.event.inputs.gcp_creds_block_name }}
+          gcs_bucket_name: ${{ github.event.inputs.gcs_bucket_name }}
+          image_uri: ${{ needs.builds-and-deploys-flows-image.outputs.image-uri }}
+          region: ${{ github.event.inputs.region }}
+
+  list-flows:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Generate matrix output for flows
+        id: set-matrix
+        run: |
+          echo "matrix=$(ls chess_ratings_pipeline/flows/*.py | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+        shell: bash
+
+  deploy-flows-images:
+    needs: [builds-and-deploys-flows-image, deploy-blocks, list-flows]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        flows: ${{ fromJson(needs.list-flows.outputs.matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Creates entrypoint output value
+        id: flow
+        run: |
+          export FLOW_NAME=$(basename ${{ matrix.flows }} .py)
+          echo "entrypoint=${{ matrix.flows }}:$FLOW_NAME" >> $GITHUB_OUTPUT
+      - name: Deploy flows to Cloud Run
+        id: deploy
+        uses: ./.github/actions/deploy-flows
+        with:
+          prefect_api_key: ${{ secrets.PREFECT_API_KEY }}
+          prefect_api_url: ${{ secrets.PREFECT_API_URL }}
+          flow_entrypoint: ${{ steps.flow.outputs.entrypoint }}
+          deployment: ${{ github.event.inputs.deployment }}
+          queue: ${{ github.event.inputs.prefect-queue }}
+          storage_block: github/${{ github.event.inputs.default_block_name }}
+          infrastructure_block: cloud-run-job/${{ github.event.inputs.default_block_name }}

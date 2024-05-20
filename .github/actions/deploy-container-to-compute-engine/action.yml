@@ -1,8 +1,6 @@
-name: "Prefect Cloud execution layer on Google Cloud Run"
-branding:
-  icon: cloud
-  color: blue
-description: "Packages Prefect flow dependencies into a Docker image and deploy Prefect Cloud execution layer to Google Compute Engine"
+name: Prefect Cloud execution layer on Google Cloud Compute Engine
+description: "Package your dependencies into a Docker image and deploy Prefect Cloud execution layer to Google Compute Engine to act as Prefect Agent"
+
 inputs:
   prefect_api_key:
     description: "Prefect Cloud API key"
@@ -15,28 +13,27 @@ inputs:
     required: true
   region:
     description: "GCP region"
-    required: false
-    default: "europe-west1"
+    required: true
   artifact_repository:
     description: "Artifact Registry Repository Name"
-    required: false
-    default: prefect
+    required: true
   image_name:
     description: "Artifact Registry Image Name"
-    required: false
-    default: deployments
+    required: true
   zone:
     description: "GCP region with the zone"
-    required: false
-    default: "europe-west1-b"
+    required: true
   machine_type:
     description: "GCP Compute Engine instance type"
-    required: false
-    default: "e2-micro"
+    required: true
   machine_name:
     description: "GCP Compute Engine instance name"
-    required: false
-    default: "prefect-cloud-vm"
+    required: true
+  dockerfile_path:
+    description: "Path and filename of the Dockerfile"
+    required: true
+    default: Dockerfile
+
 runs:
   using: "composite"
   steps:
@@ -44,11 +41,10 @@ runs:
       uses: google-github-actions/auth@v1
       with:
         credentials_json: "${{ inputs.gcp_credentials_json }}"
-
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
-
-    - id: image
+    - name: Push image to Artifact Registry
+      id: image
       uses: ./.github/actions/container-image
       with:
         prefect_api_key: ${{ inputs.prefect_api_key }}
@@ -57,13 +53,14 @@ runs:
         region: ${{ inputs.region }}
         artifact_repository: ${{ inputs.artifact_repository }}
         image_name: ${{ inputs.image_name }}
-
-    - id: terminate-if-exists
+        dockerfile_path: ${{ inputs.dockerfile_path }}
+    - name: Delete existing Compute Engine instance if there is one
+      id: terminate-if-exists
       run: gcloud compute instances delete "${{ inputs.machine_name }}" --zone "${{ inputs.zone }}" --quiet --verbosity none
       continue-on-error: true
       shell: bash
-
-    - id: deploy-vm
+    - name: Deploy Compute Engine instance in GCP
+      id: deploy-vm
       shell: bash
       run: |
         export EMAIL=$(cat $GOOGLE_GHA_CREDS_PATH | jq -r '.["client_email"]')
@@ -72,5 +69,4 @@ runs:
           --machine-type "${{ inputs.machine_type }}" \
           --service-account $EMAIL \
           --scopes "cloud-platform" \
-          --container-image "${{ env.IMAGE_URI }}" \
-          --boot-disk-size "10GB"
+          --container-image "${{ env.IMAGE_URI }}"

@@ -9,6 +9,7 @@ from prefect.logging import get_run_logger
 from prefect.runtime import flow_run
 from prefect_gcp import GcpCredentials
 from prefect_gcp.cloud_storage import GcsBucket
+from google.cloud import bigquery
 
 from chess_ratings_pipeline.core.integrations.fide import (
     FideGameFormat,
@@ -18,16 +19,17 @@ from chess_ratings_pipeline.core.integrations.fide import (
     extract_fide_ratings,
     generate_file_path,
 )
-from chess_ratings_pipeline.core.integrations.google_bigquery import (
-    load_file_gcs_to_bq,
-)
 from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
     write_dataframe_to_gcs,
     write_dataframe_to_local,
 )
+from chess_ratings_pipeline.core.integrations.google_bigquery import (
+    create_external_bq_table,
+)
+from chess_ratings_pipeline.core.integrations.dbt.dbt_core import trigger_dbt_flow
 
 
-def generate_elt_single_fide_ratings_dataset_flow_name() -> str:
+def generate_extract_single_fide_ratings_dataset_flow_name() -> str:
     """
     provided parameters to the flow.
 
@@ -70,8 +72,11 @@ def generate_elt_fide_ratings_flow_name() -> str:
     return name
 
 
-@flow(flow_run_name=generate_elt_single_fide_ratings_dataset_flow_name, log_prints=True)
-def elt_single_fide_ratings_dataset(
+@flow(
+    flow_run_name=generate_extract_single_fide_ratings_dataset_flow_name,
+    log_prints=True,
+)
+def extract_single_fide_ratings_dataset(
     year: int,
     month: int,
     fide_game_format: FideGameFormat,
@@ -79,15 +84,13 @@ def elt_single_fide_ratings_dataset(
     gcs_bucket_block: GcsBucket,
     store_local: bool,
     overwrite_existing: bool,
-    bq_dataset_name: str = "landing",
-    bq_table_name: str = "fide_ratings",
 ) -> None:
     # Create Prefect info logger
     logger = get_run_logger()
 
     # Log flow start message
     start_time = datetime.now()
-    start_message = f"""Starting `elt_single_fide_ratings_dataset` sub-flow at {start_time} (local time).
+    start_message = f"""Starting `extract_single_fide_ratings_dataset` sub-flow at {start_time} (local time).
     Inputs:
         year (int): {year}
         month (int): {month}
@@ -95,9 +98,7 @@ def elt_single_fide_ratings_dataset(
         gcp_credentials_block (GcpCredentials): {gcp_credentials_block}
         gcs_bucket_block (GcsBucket): {gcs_bucket_block}
         store_local (bool): {store_local}
-        overwrite_existing (bool): {overwrite_existing}
-        bq_dataset_name (str): {bq_dataset_name}
-        bq_table_name (str): {bq_table_name}"""
+        overwrite_existing (bool): {overwrite_existing}"""
     logger.info(start_message)
 
     # Validate year and month values
@@ -122,7 +123,9 @@ def elt_single_fide_ratings_dataset(
     logger.info(
         f"Cleaning FIDE ratings data for {year}-{month} {fide_game_format.value}..."
     )
-    fide_ratings: pl.DataFrame = clean_fide_ratings(fide_ratings, year, month)
+    fide_ratings: pl.DataFrame = clean_fide_ratings(
+        fide_ratings, year, month, fide_game_format
+    )
     logger.info(
         f"Cleaned FIDE ratings data for {year}-{month} {fide_game_format.value}."
     )
@@ -164,29 +167,76 @@ def elt_single_fide_ratings_dataset(
             f"to {destination}."
         )
 
-    # Load FIDE ratings data from the GCS bucket to BigQuery
-    logger.info(
-        f"Loading FIDE ratings data for {year}-{month} {fide_game_format.value} to "
-        f"BigQuery data warehouse {bq_dataset_name}/{bq_table_name}..."
+    # Log flow end message
+    end_time = datetime.now()
+    time_taken: timedelta = end_time - start_time
+    end_message = f"""Finished `extract_single_fide_ratings_dataset` sub-flow at {start_time} (local time).
+        Time taken: {time_taken}"""
+    logger.info(end_message)
+
+
+@flow(log_prints=True)
+def load_fide_ratings_to_bq_external_table(
+    gcp_credentials_block: GcpCredentials,
+    gcs_bucket_block: GcsBucket,
+    project: str = "fide-chess-ratings",
+    bq_dataset_name: str = "chess_ratings",
+    bq_table_name: str = "landing_fide__ratings",
+) -> str:
+    # Create Prefect logger
+    logger = get_run_logger()
+
+    # Log flow start message
+    start_time = datetime.now()
+    start_message = f"Starting `create_fide_ratings_external_bq_table` flow at {start_time} (local time)."
+    logger.info(start_message)
+
+    # Get list of parent directories containing FIDE ratings Parquet files in GCS bucket
+    dirs: List[str] = gcs_bucket_block.list_folders(
+        str(generate_file_path(2000, 1, FideGameFormat.STANDARD).parent.parent)
     )
-    load_file_gcs_to_bq(
-        gcs_file=destination,
-        gcp_credentials_block=gcp_credentials_block,
-        gcs_bucket_block=gcs_bucket_block,
+
+    # Define URI patterns for FIDE ratings Parquet files in GCS bucket
+    source_uris: List[str] = [
+        f"gs://{gcs_bucket_block.bucket}/{dir}/*.parquet" for dir in dirs
+    ]
+
+    # Define BigQuery table schema
+    bq_schema = [
+        bigquery.SchemaField("fide_id", "INTEGER", mode="REQUIRED"),
+        bigquery.SchemaField("game_format", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("player_name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("fide_federation", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("sex", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("title", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("w_title", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("o_title", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("rating", "INTEGER", mode="REQUIRED"),
+        bigquery.SchemaField("game_count", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("k", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("birth_year", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("flag", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("foa_title", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("period_year", "INTEGER", mode="REQUIRED"),
+        bigquery.SchemaField("period_month", "INTEGER", mode="REQUIRED"),
+    ]
+
+    # Create external BigQuery table from list of URIs if table does not already exist
+    create_external_bq_table(
+        source_uris=source_uris,
         dataset=bq_dataset_name,
-        table_name=bq_table_name,
-    )
-    logger.info(
-        "Finished loading FIDE ratings data for "
-        f"{year}-{month} {fide_game_format.value} to "
-        f"BigQuery data warehouse {bq_dataset_name}/{bq_table_name}."
+        table=bq_table_name,
+        project=project,
+        schema=bq_schema,
+        gcp_credentials=gcp_credentials_block,
+        return_state=True,
     )
 
     # Log flow end message
     end_time = datetime.now()
     time_taken: timedelta = end_time - start_time
-    end_message = f"""Finished `elt_single_fide_ratings_dataset` sub-flow at {start_time} (local time).
-        Time taken: {time_taken}"""
+    end_message = f"""Finished `create_fide_ratings_external_bq_table` flow at {end_time} (local time).
+        Time taken: {time_taken}."""
     logger.info(end_message)
 
 
@@ -199,6 +249,8 @@ def elt_fide_ratings(
     gcs_bucket_block_name: str = "chess-ratings-dev",
     store_local: bool = False,
     overwrite_existing: bool = True,
+    bq_dataset_name: str = "chess_ratings",
+    bq_table_name: str = "landing_fide__ratings",
 ) -> None:
     """
     Prefect parent-flow for the Extract-Load-Transform (ELT) process for FIDE ratings
@@ -222,7 +274,9 @@ def elt_fide_ratings(
         gcp_credentials_block_name (str): {gcp_credentials_block_name}
         gcs_bucket_block_name (str): {gcs_bucket_block_name}
         store_local (bool): {store_local}
-        overwrite_existing (bool): {overwrite_existing}"""
+        overwrite_existing (bool): {overwrite_existing}
+        bq_dataset_name (str): {bq_dataset_name}
+        bq_table_name (str): {bq_table_name}"""
     logger.info(start_message)
 
     # Convert int year/month values to lists
@@ -263,7 +317,7 @@ def elt_fide_ratings(
         f"Loaded GCS bucket Prefect block. Bucket name: {gcs_bucket_block.bucket}"
     )
 
-    # ELT FIDE ratings data for each year/month and game format
+    # Extract FIDE ratings data for each year/month and game format to GCS
     logger.info(
         "Running FIDE ratings ELT sub-flow for each year/month and game-format "
         "combination..."
@@ -275,11 +329,11 @@ def elt_fide_ratings(
         date_game_format_combinations
     ):
         logger.info(
-            f"Submitting FIDE ratings ELT sub-flow for {year}-{month} "
+            f"Submitting FIDE ratings extraction sub-flow for {year}-{month} "
             f"{fide_game_format.value}, dataset {index+1} of "
             f"{len(date_game_format_combinations)}..."
         )
-        elt_single_fide_ratings_dataset(
+        extract_single_fide_ratings_dataset(
             year,
             month,
             fide_game_format,
@@ -290,8 +344,29 @@ def elt_fide_ratings(
             return_state=True,
         )
         logger.info(
-            f"Finished ELT sub-flow for {year}-{month} {fide_game_format.value}."
+            f"Finished extraction sub-flow for {year}-{month} {fide_game_format.value}."
         )
+
+    # Load FIDE ratings data to BigQuery external table
+    logger.info(
+        f"Loading FIDE ratings data to BigQuery external table `{bq_dataset_name}.{bq_table_name}`..."
+    )
+    load_fide_ratings_to_bq_external_table(
+        gcp_credentials_block=gcp_credentials_block,
+        gcs_bucket_block=gcs_bucket_block,
+        bq_dataset_name=bq_dataset_name,
+        bq_table_name=bq_table_name,
+        return_state=True,
+    )
+    logger.info("Finished loading FIDE ratings data to BigQuery external table.")
+
+    # Run dbt models via dbt Cloud job
+    logger.info("Running dbt models via dbt core...")
+    dbt_result: List[str] = trigger_dbt_flow(
+        commands=["pwd", "dbt debug", "dbt build"]
+    )
+    logger.info("Finished running dbt models via dbt core.")
+    logger.info(f"dbt result: {dbt_result}")
 
     # Log flow end message
     end_time = datetime.now()

@@ -124,7 +124,7 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
     )
 
     # Convert columns to data types specified in schema
-    profiles = profiles.with_columns(
+    profiles = profiles.select(
         [
             pl.from_epoch(col)
             if col in ["joined", "last_online"]
@@ -143,7 +143,7 @@ def clean_cdc_profiles(profiles: pl.DataFrame) -> pl.DataFrame:
     )
 
     # Drop duplicate rows and gather DataFrame
-    profiles = profiles.unique().collect()
+    profiles = profiles.unique(keep="first").collect()
 
     # Display cleaned DataFrame and Schema
     logger.info("Finished cleaning Chess.com player profiles DataFrame.")

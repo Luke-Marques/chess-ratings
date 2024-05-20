@@ -7,6 +7,7 @@ from prefect.logging import get_run_logger
 from prefect.runtime import flow_run
 from prefect_gcp import GcpCredentials
 from prefect_gcp.cloud_storage import GcsBucket
+from google.cloud import bigquery
 
 from chess_ratings_pipeline.core.integrations.cdc.chess_title import ChessTitle
 from chess_ratings_pipeline.core.integrations.cdc.profiles import (
@@ -15,12 +16,27 @@ from chess_ratings_pipeline.core.integrations.cdc.profiles import (
     generate_cdc_profiles_file_path,
 )
 from chess_ratings_pipeline.core.integrations.google_bigquery import (
-    load_file_gcs_to_bq,
+    create_external_bq_table,
 )
 from chess_ratings_pipeline.core.integrations.google_cloud_storage import (
     write_dataframe_to_gcs,
     write_dataframe_to_local,
 )
+from chess_ratings_pipeline.core.integrations.dbt.dbt_core import trigger_dbt_flow
+
+
+def generate_extract_single_title_cdc_profiles_flow_name() -> str:
+    """
+    Generates the name of the `elt_single_title_cdc_profiles` flow based on the
+    parameters provided to the flow.
+
+    Returns:
+        str: The name of the `elt_single_title_cdc_profiles` flow.
+    """
+    flow_name = flow_run.flow_name
+    parameters = flow_run.parameters
+    chess_title: ChessTitle = parameters["chess_title"]
+    return f"{flow_name}-{chess_title.name.lower()}"
 
 
 def generate_elt_cdc_profiles_flow_name() -> str:
@@ -45,54 +61,16 @@ def generate_elt_cdc_profiles_flow_name() -> str:
     return name
 
 
-def generate_elt_single_title_cdc_profiles_flow_name() -> str:
-    """
-    Generates the name of the `elt_single_title_cdc_profiles` flow based on the
-    parameters provided to the flow.
-
-    Returns:
-        str: The name of the `elt_single_title_cdc_profiles` flow.
-    """
-    flow_name = flow_run.flow_name
-    parameters = flow_run.parameters
-    chess_title: ChessTitle = parameters["chess_title"]
-    return f"{flow_name}-{chess_title.name.lower()}"
-
-
-@flow(flow_run_name=generate_elt_single_title_cdc_profiles_flow_name, log_prints=True)
-def elt_single_title_cdc_profiles(
+@flow(
+    flow_run_name=generate_extract_single_title_cdc_profiles_flow_name, log_prints=True
+)
+def extract_single_title_cdc_profiles(
     chess_title: ChessTitle,
     gcp_credentials_block: GcpCredentials,
     gcs_bucket_block: GcsBucket,
     store_local: bool,
     overwrite_existing: bool,
-    bq_dataset_name: str,
-    bq_table_name: str,
 ) -> None:
-    """
-    Extracts Chess.com player profiles for the specified ChessTitle, cleans and
-    validates the data, writes it to a parquet file in a GCS bucket and/or locally, and
-    loads it into a BigQuery data warehouse table.
-
-    Args:
-        chess_title (ChessTitle):
-            The title of the chess players to extract profiles for.
-        gcp_credentials_block (GcpCredentials):
-            The GCP credentials block for authentication.
-        gcs_bucket_block (GcsBucket):
-            The GCS bucket block for writing the data.
-        store_local (bool):
-            Flag indicating whether to store the data locally.
-        overwrite_existing (bool):
-            Flag indicating whether to overwrite existing data.
-        bq_dataset_name (str, optional):
-            The name of the BigQuery dataset.
-        bq_table_name (str, optional):
-            The name of the BigQuery table.
-
-    Returns:
-        None
-    """
     # Create Prefect info logger
     logger = get_run_logger()
 
@@ -104,9 +82,7 @@ def elt_single_title_cdc_profiles(
         gcp_credentials_block (GcpCredentials): {gcp_credentials_block}
         gcs_bucket_block (GcsBucket): {gcs_bucket_block}
         store_local (bool): {store_local}
-        overwrite_existing (bool): {overwrite_existing}
-        bq_dataset_name (str): {bq_dataset_name}
-        bq_table_name (str): {bq_table_name}"""
+        overwrite_existing (bool): {overwrite_existing}"""
     logger.info(start_message)
 
     # Extract Chess.com player profiles for the specified ChessTitle
@@ -157,25 +133,82 @@ def elt_single_title_cdc_profiles(
         write_dataframe_to_local(cdc_profiles, destination, overwrite_existing)
         logger.info("Finished writing player profiles DataFrame locally.")
 
-    # Load player profiles data from GCS bucket to BigQuery
-    logger.info(
-        f"Loading cleaned Chess.com {chess_title.value} titled player profiles "
-        f"data to BigQuery data warehouse {bq_dataset_name}/{bq_table_name}..."
-    )
-    load_file_gcs_to_bq(
-        gcs_file=destination,
-        gcp_credentials_block=gcp_credentials_block,
-        gcs_bucket_block=gcs_bucket_block,
-        dataset=bq_dataset_name,
-        table_name=bq_table_name,
-    )
-    logger.info("Finished loading player profiles data to BigQuery.")
-
     # Log flow end message
     end_time = datetime.now()
     time_taken: timedelta = end_time - start_time
     end_message = f"""Finished `elt_single_title_cdc_profiles` sub-flow at {end_time} (local time).
     Time taken: {time_taken}."""
+    logger.info(end_message)
+
+
+@flow(log_prints=True)
+def load_cdc_profiles_to_bq_external_table(
+    gcp_credentials_block: GcpCredentials,
+    gcs_bucket_block: GcsBucket,
+    project: str = "fide-chess-ratings",
+    bq_dataset_name: str = "chess_ratings",
+    bq_table_name: str = "landing_cdc__profiles",
+) -> str:
+    # Create Prefect logger
+    logger = get_run_logger()
+
+    # Log flow start message
+    start_time = datetime.now()
+    start_message = f"""Starting `load_cdc_profiles_to_bq_external_table` flow at {start_time} (local time).
+    Inputs:
+        gcp_credentials_block (GcpCredentials): {gcp_credentials_block}
+        gcs_bucket_block (GcsBucket): {gcs_bucket_block}
+        project (str): {project}
+        bq_dataset_name (str): {bq_dataset_name}
+        bq_table_name (str): {bq_table_name}"""
+    logger.info(start_message)
+
+    # Get list of parent directories containing Chess.com player profiles Parquet files
+    # in GCS bucket
+    dirs: List[str] = gcs_bucket_block.list_folders(
+        str(generate_cdc_profiles_file_path(ChessTitle.GM).parent.parent)
+    )
+
+    # Define URI patterns for FIDE ratings Parquet files in GCS bucket
+    source_uris: List[str] = [
+        f"gs://{gcs_bucket_block.bucket}/{dir}/*.parquet" for dir in dirs
+    ]
+
+    # Define BigQuery table schema
+    bq_schema = [
+        bigquery.SchemaField("avatar_url", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("api_url", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("profile_url", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("username", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("player_id", "INTEGER", mode="REQUIRED"),
+        bigquery.SchemaField("title", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("name", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("location", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("country", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("joined", "DATETIME", mode="NULLABLE"),
+        bigquery.SchemaField("last_online", "DATETIME", mode="NULLABLE"),
+        bigquery.SchemaField("followers", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("is_streamer", "BOOLEAN", mode="NULLABLE"),
+        bigquery.SchemaField("fide", "INTEGER", mode="NULLABLE"),
+        bigquery.SchemaField("scrape_datetime", "DATETIME", mode="NULLABLE"),
+    ]
+
+    # Create external BigQuery table from list of URIs if table does not already exist
+    create_external_bq_table(
+        source_uris=source_uris,
+        dataset=bq_dataset_name,
+        table=bq_table_name,
+        project=project,
+        schema=bq_schema,
+        gcp_credentials=gcp_credentials_block,
+        return_state=True,
+    )
+
+    # Log flow end message
+    end_time = datetime.now()
+    time_taken: timedelta = end_time - start_time
+    end_message = f"""Finished `load_cdc_profiles_to_bq_external_table` flow at {end_time} (local time).
+        Time taken: {time_taken}."""
     logger.info(end_message)
 
 
@@ -186,8 +219,9 @@ def elt_cdc_profiles(
     gcs_bucket_block_name: str = "chess-ratings-dev",
     store_local: bool = False,
     overwrite_existing: bool = True,
-    bq_dataset_name: str = "landing",
-    bq_table_name: str = "cdc_profiles",
+    bq_dataset_name: str = "chess_ratings",
+    bq_table_name: str = "landing_cdc__profiles",
+    dbt_job_id: int = 638701,
 ) -> None:
     """
     Extract, load, and transform Chess.com player profiles for the specified chess
@@ -249,7 +283,7 @@ def elt_cdc_profiles(
         f"Loaded GCS bucket Prefect block. Bucket name: {gcs_bucket_block.bucket}"
     )
 
-    # ELT Chess.com player profiles for each ChessTitle
+    # Extract Chess.com player profiles for each ChessTitle to GCS bucket
     logger.info(
         "Running Chess.com player profiles ELT sub-flow for each chess title "
         "specified..."
@@ -259,20 +293,39 @@ def elt_cdc_profiles(
             f"Running Chess.com player profiles ELT sub-flow for Chess.com players "
             f"with {chess_title.value} titles..."
         )
-        elt_single_title_cdc_profiles(
+        extract_single_title_cdc_profiles(
             chess_title,
             gcp_credentials_block,
             gcs_bucket_block,
             store_local,
             overwrite_existing,
-            bq_dataset_name,
-            bq_table_name,
             return_state=True,
         )
         logger.info(
             f"Finished Chess.com player profiles ELT sub-flow for Chess.com players "
             f"with {chess_title.value} titles."
         )
+
+    # Load Chess.com player profiles to BigQuery external table
+    logger.info(
+        f"Loading Chess.com player profiles to BigQuery external table {bq_dataset_name}.{bq_table_name}..."
+    )
+    load_cdc_profiles_to_bq_external_table(
+        gcp_credentials_block=gcp_credentials_block,
+        gcs_bucket_block=gcs_bucket_block,
+        bq_dataset_name=bq_dataset_name,
+        bq_table_name=bq_table_name,
+        return_state=True,
+    )
+    logger.info(
+        f"Finished loading Chess.com player profiles to BigQuery external table {bq_dataset_name}.{bq_table_name}."
+    )
+
+    # Run dbt models via dbt Cloud job
+    logger.info("Running dbt models via dbt core...")
+    dbt_result: List[str] = trigger_dbt_flow(commands=["pwd", "dbt debug", "dbt build"])
+    logger.info("Finished running dbt models via dbt core.")
+    logger.info(f"dbt result: {dbt_result}")
 
     # Log flow end message
     end_time = datetime.now()

@@ -1,5 +1,5 @@
-name: "Prefect Blocks Quickstart"
-description: "Deploy CloudRunJob and GitHub blocks for serverless containerized execution"
+name: Prefect Block Deployments
+description: "Deploy GcsBucket, CloudRunJob, and GitHub blocks for serverless containerized execution."
 branding:
   icon: cloud
   color: blue
@@ -12,24 +12,20 @@ inputs:
     required: true
   block_name:
     description: "Name of the GitHub, CloudRunJob, and GcsBucket Block"
-    required: false
-    default: "chess-ratings-dev" # change to your gcp-credentials prefect block name
+    required: true
   gcp_creds_block_name:
     description: "Name of the GCP Credentials Block"
-    required: false
-    default: "gcp-creds-chess-ratings"
+    required: true
   gcs_bucket_name:
     description: "Name of GCP GCS Bucket to use for bucket block"
-    required: false
-    default: "chess-ratings-datalake_fide-chess-ratings"
-  image_uri:
-    description: "Name of the AR image URI"
     required: true
-    default: "europe-west1-docker.pkg.dev/prefect-community/prefect/deployments:latest"
+  image_uri:
+    description: "Artifact Registry image URI to be used for Cloud Run Jobs"
+    required: false
+    default: "europe-west1-docker.pkg.dev/prefect-community/prefect-flows/flows:latest"
   region:
     description: GCP region
     required: true
-    default: "europe-west1"
   python_version:
     description: "Python version"
     required: false
@@ -51,13 +47,13 @@ runs:
     - name: Install dependencies
       shell: bash
       run: poetry install --no-interaction
-
-    - id: login-prefect
+    - name: Configure Prefect
+      id: login-prefect
       run: |
         poetry run prefect config set PREFECT_API_KEY=${{ inputs.prefect_api_key }}
         poetry run prefect config set PREFECT_API_URL=${{ inputs.prefect_api_url }}
       shell: bash
-
-    - id: create-blocks
+    - name: Create and deploy Prefect blocks
+      id: create-blocks
       run: poetry run python ${{ github.action_path }}/blocks.py -b $GITHUB_REF_NAME -r $GITHUB_SERVER_URL/$GITHUB_REPOSITORY -n ${{ inputs.block_name }} -i ${{ inputs.image_uri }} --region ${{ inputs.region }} -g ${{ inputs.gcp_creds_block_name }} -p ${{ inputs.gcs_bucket_name }}
       shell: bash

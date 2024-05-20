@@ -5,11 +5,13 @@ from typing import Iterable, List, Optional
 
 import pandas as pd
 import polars as pl
-import google.cloud.bigquery as bigquery
-from prefect import flow, get_run_logger
+from google.cloud import bigquery
+from prefect import task, flow, get_run_logger
 from prefect_gcp.bigquery import bigquery_load_cloud_storage
 from prefect_gcp.cloud_storage import GcsBucket
 from prefect_gcp.credentials import GcpCredentials
+from google.cloud.bigquery.external_config import ExternalConfig
+from google.cloud.bigquery.table import TimePartitioning
 
 
 class BigQueryDataType(StrEnum):
@@ -146,8 +148,9 @@ def load_file_gcs_to_bq(
         location (str): {location}"""
     logger.info(start_message)
 
-    # Define GCS bucket prefix to prepend to GCS file path
+    # Define GCS source file uri
     GCS_BUCKET_PREFIX = f"gs://{gcs_bucket_block.bucket}"
+    source_uri = f"{GCS_BUCKET_PREFIX}/{gcs_file}"
 
     # Get BQ schema for data in GCS file
     bq_schema: List[bigquery.SchemaField] = generate_bigquery_schema(
@@ -159,7 +162,7 @@ def load_file_gcs_to_bq(
     bigquery_load_cloud_storage(
         dataset=dataset,
         table=table_name,
-        uri=f"{GCS_BUCKET_PREFIX}/{gcs_file}",
+        uri=source_uri,
         gcp_credentials=gcp_credentials_block,
         location=location,
         job_config={
@@ -232,5 +235,65 @@ def load_files_gcs_to_bq(
     end_time = datetime.now()
     time_taken: timedelta = end_time - start_time
     end_message = f"""Finished `load_files_from_gcs_to_bigquery` flow at {end_time} (local time).
+        Time taken: {time_taken}"""
+    logger.info(end_message)
+
+
+@task(log_prints=True, cache_result_in_memory=False, persist_result=False)
+def create_external_bq_table(
+    source_uris: Iterable[str] | str,
+    dataset: str,
+    table: str,
+    schema: List[bigquery.SchemaField],
+    gcp_credentials: GcpCredentials,
+    clustering_fields: List[str] = None,
+    time_partitioning: TimePartitioning = None,
+    location: str = "europe-west1",
+    external_config: Optional["ExternalConfig"] = None,
+    project: Optional[str] = "fide-chess-ratings",
+    source_format: str = "PARQUET",
+) -> None:
+    # Create Prefect info logger
+    logger = get_run_logger()
+
+    # Log flow start message
+    start_time = datetime.now()
+    start_message = f"""Starting `create_external_bq_table` flow at {start_time} (local time).
+    Inputs:
+        source_uris (Iterable[str] | str): {source_uris}
+        dataset (str): {dataset}
+        table (str): {table}
+        gcp_credentials (GcpCredentials): {gcp_credentials}
+        clustering_fields (List[str]): {clustering_fields}
+        time_partitioning (TimePartitioning): {time_partitioning}
+        location (str): {location}
+        external_config (ExternalConfig): {external_config}
+        project (str): {project}
+        source_format (str): {source_format}"""
+    logger.info(start_message)
+
+    # Convert single URI to list
+    if isinstance(source_uris, str):
+        source_uris = [source_uris]
+
+    # Create ExternalConfig object if not provided
+    external_config = ExternalConfig(source_format.upper())
+    external_config.source_uris = source_format
+
+    # Create BigQuery external table from URIs in GCS
+    logger.info(f"Creating external table {dataset}.{table} from GCS files...")
+    client = gcp_credentials.get_bigquery_client(project=project, location=location)
+    table_id = f"{project}.{dataset}.{table}"
+    external_config = bigquery.ExternalConfig(source_format.upper())
+    external_config.source_uris = source_uris
+    table = bigquery.Table(table_id, schema=schema)
+    table.external_data_configuration = external_config
+    client.create_table(table, exists_ok=True)
+    logger.info("Finished.")
+
+    # Log flow end message
+    end_time = datetime.now()
+    time_taken: timedelta = end_time - start_time
+    end_message = f"""Finished `create_external_bq_table` flow at {end_time} (local time).
         Time taken: {time_taken}"""
     logger.info(end_message)

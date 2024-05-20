@@ -5,11 +5,10 @@ python blocks.py -b $GITHUB_REF_NAME -r "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" 
 
 import argparse
 
-from prefect_gcp import GcsBucket
+from prefect.filesystems import GitHub
 from prefect_gcp.cloud_run import CloudRunJob
 from prefect_gcp.credentials import GcpCredentials
-
-from prefect.filesystems import GitHub
+from prefect_dbt.cli import DbtCliProfile, BigQueryTargetConfigs
 
 # parse command line arguments
 REPO = "https://github.com/Luke-Marques/chess-ratings"
@@ -25,7 +24,6 @@ args = parser.parse_args()
 
 # load GCP credentials block
 gcp_credentials = GcpCredentials.load(args.gcp_creds_block_name)
-print(gcp_credentials)
 
 # create GitHub block and save to Prefect Cloud
 github_block = GitHub(repository=args.repo, reference=args.branch)
@@ -44,6 +42,17 @@ cloud_run_job_block = CloudRunJob(
 )
 cloud_run_job_block.save(args.block_name, overwrite=True)
 
-# create GCP GCS Bucket block and save to Prefect Cloud
-gcs_bucket_block = GcsBucket(bucket=args.bucket_name, credentials=gcp_credentials)
-gcs_bucket_block.save(args.block_name, overwrite=True)
+# create BigQuery Target Configs block and save to Prefect Cloud
+target_configs = BigQueryTargetConfigs(
+    schema="chess_ratings",  # also known as dataset
+    credentials=gcp_credentials,
+)
+target_configs.save(args.block_name, overwrite=True)
+
+# create dbt CLI Profile block and save to Prefect Cloud
+dbt_cli_profile = DbtCliProfile(
+    name="dbt_chess_ratings_pipeline",
+    target="dev",
+    target_configs=target_configs,
+)
+dbt_cli_profile.save(args.block_name, overwrite=True)

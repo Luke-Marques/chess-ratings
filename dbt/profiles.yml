@@ -1,0 +1,13 @@
+gcp_chess_ratings: # your profile name from dbt_project.yml
+  target: dev # your development environment
+  outputs:
+    dev:
+      type: bigquery
+      project: fide-chess-ratings
+      dataset: chess_ratings
+      threads: 1
+      location: europe-west1
+      priority: interactive
+      job_retries: 1
+      job_execution_timeout_seconds: 300
+      method: oauth
