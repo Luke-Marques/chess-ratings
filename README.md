@@ -28,3 +28,12 @@ data into BigQuery, and calls `dbt` to rerun all downstream models reliant on th
 The flow is scheduled to run every 24 hours.
 
 ![prefect_flow_example](https://raw.githubusercontent.com/Luke-Marques/chess-ratings/dev/images/prefect_cdc_profiles_flow_screenshot.png)
+
+## Github Actions CI/CD Example
+
+Below is an example of a custom Github workflow which deploys required Prefect Cloud
+blocks, and the Docker container `Dockerfile_Flows` to the Google Artifact Registry to
+be used in Cloud Run Jobs. It then deploys all main flows to Prefect Cloud, enabling
+them to be manually called or scheduled.
+
+![github_actions_example](https://raw.githubusercontent.com/Luke-Marques/chess-ratings/dev/images/github_actions_screenshot.png)
