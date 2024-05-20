@@ -16,6 +16,15 @@
 - Terraform (Infrastructure as Code for GCP resources)
 - SQL & dbt (Data Modelling and Transformation)
 
-## Graphical Project Overview
+## Graphical Project Overview 📊
 
 ![pipeline_flow_chart](https://raw.githubusercontent.com/Luke-Marques/chess-ratings/dev/images/project_flow_chart.png)
+
+## Prefect Flow Example
+
+Below is an example of a completed flow which ingests data from the Chess.com API,
+transforms the data into a format suitable for loading into BigQuery, loads the
+data into BigQuery, and calls `dbt` to rerun all downstream models reliant on this data.
+The flow is scheduled to run every 24 hours.
+
+![prefect_flow_example](https://raw.githubusercontent.com/Luke-Marques/chess-ratings/dev/images/prefect_cdc_profiles_flow_screenshot.png)
