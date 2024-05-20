@@ -18,4 +18,4 @@
 
 ## Graphical Project Overview
 
-![pipeline_flow_chart](./images/pipeline_flow_chart.png)
+![pipeline_flow_chart](https://raw.githubusercontent.com/Luke-Marques/chess-ratings/dev/images/project_flow_chart.png)
