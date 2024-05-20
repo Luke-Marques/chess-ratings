@@ -2,10 +2,11 @@
 
 ## Pipeline Description
 
-In this project, which is the culmination of my learnings from the recent Data 
-Engineering Zoomcamp, I have built an orchestrated, cloud-based, end-to-end ELT pipeline
-for ingesting, transforming, and visualising data from two chess ratings datasets; 
-Chess.com and the International Chess Federation (FIDE).
+In this project, which is the culmination of my learnings from the recent [Data
+Engineering Zoomcamp](https://github.com/DataTalksClub/data-engineering-zoomcamp), I
+have built an orchestrated, cloud-based, end-to-end ELT pipeline for ingesting,
+transforming, and visualising data from two chess ratings datasets; Chess.com and the
+International Chess Federation (FIDE).
 
 *My goals for this project are two-fold:*
 
