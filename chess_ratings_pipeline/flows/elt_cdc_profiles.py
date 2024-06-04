@@ -74,6 +74,20 @@ def extract_single_title_cdc_profiles(
     store_local: bool,
     overwrite_existing: bool,
 ) -> None:
+    """
+    Extracts Chess.com player profiles for a specified ChessTitle, performs
+    initial cleaning/preprocessing, and writes cleaned dataset to Parquet file in a GCS
+    bucket and/or locally.
+
+    Args:
+        chess_title (ChessTitle): The ChessTitle for which player profiles need to be extracted.
+        gcs_bucket_block (GcsBucket): The GCS bucket where the player profiles will be stored.
+        store_local (bool): Flag indicating whether to store the player profiles locally.
+        overwrite_existing (bool): Flag indicating whether to overwrite existing player profiles.
+
+    Returns:
+        None
+    """
     # Log flow start message
     logger = get_run_logger()
     start_time = datetime.now()
@@ -117,6 +131,20 @@ def load_cdc_profiles_to_bq_external_table(
     bq_dataset_name: str = "chess_ratings",
     bq_table_name: str = "landing_cdc__profiles",
 ) -> str:
+    """
+    Loads Chess.com player profiles data from Parquet files in a GCS bucket into an
+    external BigQuery table.
+
+    Args:
+        gcp_credentials_block (GcpCredentials): The GCP credentials block for authentication.
+        gcs_bucket_block (GcsBucket): The GCS bucket block for accessing the GCS bucket.
+        project (str, optional): The GCP project ID. Defaults to "fide-chess-ratings".
+        bq_dataset_name (str, optional): The BigQuery dataset name. Defaults to "chess_ratings".
+        bq_table_name (str, optional): The BigQuery table name. Defaults to "landing_cdc__profiles".
+
+    Returns:
+        str: The state of the external BigQuery table creation process.
+    """
     # Log flow start message
     logger = get_run_logger()
     start_time = datetime.now()
@@ -190,6 +218,24 @@ def elt_cdc_profiles(
     bq_dataset_name: str = "chess_ratings",
     bq_table_name: str = "landing_cdc__profiles",
 ) -> None:
+    """
+    Extracts Chess.com player profiles for the specified ChessTitles, performs initial
+    cleaning/preprocessing, writes cleaned datasets to Parquet files in a GCS bucket
+    and/or locally, loads the Parquet files in the GCS bucket to an external BigQuery
+    table, and runs all dbt models.
+
+    Args:
+        chess_titles (ChessTitle | List[ChessTitle] | Literal["all"], optional): The ChessTitles for which player profiles need to be extracted. Defaults to "all".
+        gcp_credentials_block_name (str, optional): The name of the GCP credentials block. Defaults to "gcp-creds-chess-ratings".
+        gcs_bucket_block_name (str, optional): The name of the GCS bucket block. Defaults to "chess-ratings-dev".
+        store_local (bool, optional): Flag indicating whether to store the player profiles locally. Defaults to False.
+        overwrite_existing (bool, optional): Flag indicating whether to overwrite existing player profiles. Defaults to True.
+        bq_dataset_name (str, optional): The BigQuery dataset name. Defaults to "chess_ratings".
+        bq_table_name (str, optional): The BigQuery table name. Defaults to "landing_cdc__profiles".
+
+    Returns:
+        None
+    """
     # Log flow start message
     logger = get_run_logger()
     start_time = datetime.now()
