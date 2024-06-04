@@ -90,6 +90,23 @@ def extract_single_fide_ratings_dataset(
     store_local: bool,
     overwrite_existing: bool,
 ) -> None:
+    """
+    Extracts a single FIDE ratings dataset for a given year and month, applies initial
+    cleaning/preprocessing, and writes cleaned dataset to Parquet file in a GCS bucket
+    and/or locally.
+
+    Args:
+        year (int): The year of the ratings dataset.
+        month (int): The month of the ratings dataset.
+        fide_game_format (FideGameFormat): The FIDE game format.
+        gcp_credentials_block (GcpCredentials): The Prefect GCP credentials block.
+        gcs_bucket_block (GcsBucket): The Prefect GCS bucket block.
+        store_local (bool): Flag indicating whether to store the dataset locally.
+        overwrite_existing (bool): Flag indicating whether to overwrite existing dataset.
+
+    Returns:
+        None
+    """
     # Log flow start message
     logger = get_run_logger()
     start_time = datetime.now()
@@ -144,6 +161,20 @@ def load_fide_ratings_to_bq_external_table(
     bq_dataset_name: str = "chess_ratings",
     bq_table_name: str = "landing_fide__ratings",
 ) -> str:
+    """
+    Loads FIDE ratings data from Parquet files in a GCS bucket into an external BigQuery
+    table.
+
+    Args:
+        gcp_credentials_block (GcpCredentials): The GCP credentials block.
+        gcs_bucket_block (GcsBucket): The GCS bucket block.
+        project (str, optional): The GCP project name. Defaults to "fide-chess-ratings".
+        bq_dataset_name (str, optional): The BigQuery dataset name. Defaults to "chess_ratings".
+        bq_table_name (str, optional): The BigQuery table name. Defaults to "landing_fide__ratings".
+
+    Returns:
+        str: The state of the external BigQuery table creation.
+    """
     # Log flow start message
     logger = get_run_logger()
     start_time = datetime.now()
@@ -159,8 +190,14 @@ def load_fide_ratings_to_bq_external_table(
     logger.info(start_message)
 
     # Get list of parent directories containing FIDE ratings Parquet files in GCS bucket
+    example_year, example_month = 2000, 1
+    example_fide_game_format = FideGameFormat.STANDARD
     dirs: List[str] = gcs_bucket_block.list_folders(
-        str(generate_file_path(2000, 1, FideGameFormat.STANDARD).parent.parent)
+        str(
+            generate_file_path(
+                example_year, example_month, example_fide_game_format
+            ).parent.parent
+        )
     )
 
     # Define URI patterns for FIDE ratings Parquet files in GCS bucket
@@ -219,6 +256,36 @@ def elt_fide_ratings(
     bq_dataset_name: str = "chess_ratings",
     bq_table_name: str = "landing_fide__ratings",
 ) -> None:
+    """
+    Prefect flow which extracts FIDE ratings data for specified years, months, and game 
+    formats, applies initial cleaning/preprocessing, writes the cleaned datasets to 
+    Parquet files in a GCS bucket and/or locally, loads the data into external BigQuery
+    landing tables, and runs all downstream dbt models in the data warehouse.
+
+    Args:
+        years (List[int] | int): The years for which to extract FIDE ratings data.
+            Defaults to the current year.
+        months (List[int] | int): The months for which to extract FIDE ratings data.
+            Defaults to the current month.
+        fide_game_format (str): The FIDE game format(s) to extract ratings for.
+            Valid options are "all", "standard", "rapid", and "blitz".
+            Defaults to "all".
+        gcp_credentials_block_name (str): The name of the GCP credentials block to use.
+            Defaults to "gcp-creds-chess-ratings".
+        gcs_bucket_block_name (str): The name of the GCS bucket block to use.
+            Defaults to "chess-ratings-dev".
+        store_local (bool): Whether to store the extracted data locally.
+            Defaults to False.
+        overwrite_existing (bool): Whether to overwrite existing data.
+            Defaults to True.
+        bq_dataset_name (str): The name of the BigQuery dataset to load the data into.
+            Defaults to "chess_ratings".
+        bq_table_name (str): The name of the BigQuery table to load the data into.
+            Defaults to "landing_fide__ratings".
+
+    Returns:
+        None
+    """
     # Log flow start message
     logger = get_run_logger()
     start_time = datetime.now()
