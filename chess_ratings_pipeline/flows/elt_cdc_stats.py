@@ -32,8 +32,8 @@ from chess_ratings_pipeline.core.logging_messages.logging_messages import (
 
 def generate_extract_single_title_cdc_stats_flow_name() -> str:
     """
-    Generates the name of the `elt_single_title_cdc_stats` flow based on the parameters provided
-    to the flow.
+    Generates the name of the `elt_single_title_cdc_stats` flow based on the parameters
+    provided to the flow.
 
     Returns:
         str: The name of the `elt_single_title_cdc_stats` flow.
@@ -75,6 +75,21 @@ def extract_single_title_cdc_stats(
     store_local: bool,
     overwrite_existing: bool,
 ) -> None:
+    """
+    Extracts Chess.com player game statistics for a specified ChessTitle, performs
+    initial cleaning/preprocessing, and writes the cleaned statistics to a parquet file
+    in a GCS bucket and/or locally.
+
+    Args:
+        chess_title (ChessTitle): The title for which to extract the player game statistics.
+        gcp_credentials_block (GcpCredentials): The GCP credentials block for authentication.
+        gcs_bucket_block (GcsBucket): The GCS bucket block for writing the statistics.
+        store_local (bool): Flag indicating whether to store the statistics locally.
+        overwrite_existing (bool): Flag indicating whether to overwrite existing statistics.
+
+    Returns:
+        None
+    """
     # Log flow start message
     logger = get_run_logger()
     start_time = datetime.now()
@@ -117,7 +132,21 @@ def load_cdc_stats_to_bq_external_table(
     project: str = "fide-chess-ratings",
     bq_dataset_name: str = "chess_ratings",
     bq_table_name_prefix: str = "landing_cdc",
-) -> str:
+) -> None:
+    """
+    Loads Chess.com stats data from Parquet files in a GCS bucket into external BigQuery
+    tables.
+
+    Args:
+        gcp_credentials_block (GcpCredentials): The GCP (Google Cloud Platform) credentials block.
+        gcs_bucket_block (GcsBucket): The GCS (Google Cloud Storage) bucket block.
+        project (str, optional): The GCP project name. Defaults to "fide-chess-ratings".
+        bq_dataset_name (str, optional): The BigQuery dataset name. Defaults to "chess_ratings".
+        bq_table_name_prefix (str, optional): The prefix for the BigQuery table names. Defaults to "landing_cdc".
+
+    Returns:
+        None
+    """
     # Log flow start message
     logger = get_run_logger()
     start_time = datetime.now()
@@ -232,6 +261,25 @@ def elt_cdc_stats(
     bq_dataset_name: Optional[str] = "chess_ratings",
     bq_table_name_prefix: Optional[str] = "landing_cdc",
 ) -> None:
+    """
+    Prefect flow which extracts Chess.com player game statistics for specified
+    ChessTitles, performs initial cleaning/preprocessing, writes the cleaned statistics
+    to a GCS bucket and/or locally, loads the statistics to BigQuery external tables,
+    and runs dbt models for transformations in BigQuery data warehouse.
+
+    Args:
+        chess_titles (Optional[List[ChessTitle] | ChessTitle] | Literal["all"], optional):
+            The ChessTitles for which to extract the player game statistics. Defaults to "all".
+        gcp_credentials_block_name (Optional[str], optional): The name of the GCP credentials block. Defaults to "gcp-creds-chess-ratings".
+        gcs_bucket_block_name (Optional[str], optional): The name of the GCS bucket block. Defaults to "chess-ratings-dev".
+        store_local (Optional[bool], optional): Flag indicating whether to store the statistics locally. Defaults to False.
+        overwrite_existing (Optional[bool], optional): Flag indicating whether to overwrite existing statistics. Defaults to True.
+        bq_dataset_name (Optional[str], optional): The BigQuery dataset name. Defaults to "chess_ratings".
+        bq_table_name_prefix (Optional[str], optional): The prefix for the BigQuery table names. Defaults to "landing_cdc".
+
+    Returns:
+        None
+    """
     # Log flow start message
     logger = get_run_logger()
     start_time = datetime.now()
